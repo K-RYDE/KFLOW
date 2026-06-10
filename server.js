@@ -1,5 +1,7 @@
 const http = require("http");
 
+console.log("INICIANDO SERVIDOR...");
+
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer((req, res) => {
@@ -8,5 +10,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log("Servidor raiz funcionando na porta " + PORT);
+  console.log("Servidor rodando na porta " + PORT);
 });
