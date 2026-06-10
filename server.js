@@ -1,41 +1,64 @@
-const http = require("http");
-const { Client } = require("pg");
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
 
-const client = new Client({
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// 🔥 conexão automática com Railway
+const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
     rejectUnauthorized: false,
   },
 });
 
-client.connect();
+// TESTE
+app.get('/', (req, res) => {
+  res.send('API rodando 🚀');
+});
 
-const server = http.createServer(async (req, res) => {
-  // ROTA PRINCIPAL
-  if (req.url === "/") {
-    res.writeHead(200, { "Content-Type": "text/plain" });
-    return res.end("API rodando 🚀");
+// CRIAR TABELA (executa 1 vez automático)
+app.get('/init', async (req, res) => {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS materiais (
+        id SERIAL PRIMARY KEY,
+        nome TEXT,
+        quantidade INT
+      );
+    `);
+    res.send('Tabela criada');
+  } catch (err) {
+    res.status(500).send(err.message);
   }
+});
 
-  // ROTA PRODUTOS
-  if (req.url === "/produtos") {
-    try {
-      const result = await client.query("SELECT * FROM produtos");
+// SALVAR
+app.post('/materiais', async (req, res) => {
+  const { nome, quantidade } = req.body;
 
-      res.writeHead(200, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify(result.rows));
-    } catch (error) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      return res.end(JSON.stringify({ erro: error.message }));
-    }
+  try {
+    const result = await pool.query(
+      'INSERT INTO materiais (nome, quantidade) VALUES ($1, $2) RETURNING *',
+      [nome, quantidade]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).send(err.message);
   }
+});
 
-  // ROTA NÃO ENCONTRADA
-  res.writeHead(404, { "Content-Type": "text/plain" });
-  res.end("Rota não encontrada");
+// LISTAR
+app.get('/materiais', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT * FROM materiais');
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).send(err.message);
+  }
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+app.listen(PORT, () => console.log('Servidor rodando'));
