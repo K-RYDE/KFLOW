@@ -4,12 +4,22 @@ const { Pool } = require("pg");
 const app = express();
 app.use(express.json());
 
+// 🔗 CONEXÃO COM BANCO (Railway)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
+// =========================
+// 🚀 ROTA RAIZ (IMPORTANTE)
+// =========================
+app.get("/", (req, res) => {
+  res.send("API rodando 🚀");
+});
+
+// =========================
 // 🔧 CRIAR TODAS AS TABELAS
+// =========================
 app.get("/init", async (req, res) => {
   try {
     await pool.query(`
@@ -34,7 +44,7 @@ app.get("/init", async (req, res) => {
       CREATE TABLE IF NOT EXISTS materiais (
         id SERIAL PRIMARY KEY,
         nome TEXT,
-        quantidade INTEGER,
+        quantidade INTEGER DEFAULT 0,
         projeto_id INTEGER REFERENCES projetos(id)
       );
     `);
@@ -46,56 +56,68 @@ app.get("/init", async (req, res) => {
   }
 });
 
-
 // =========================
 // 🏙️ CIDADES
 // =========================
 app.post("/cidades", async (req, res) => {
-  const { nome } = req.body;
-  const result = await pool.query(
-    "INSERT INTO cidades (nome) VALUES ($1) RETURNING *",
-    [nome]
-  );
-  res.json(result.rows[0]);
+  try {
+    const { nome } = req.body;
+    const result = await pool.query(
+      "INSERT INTO cidades (nome) VALUES ($1) RETURNING *",
+      [nome]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erro ao criar cidade");
+  }
 });
 
 app.get("/cidades", async (req, res) => {
-  const result = await pool.query("SELECT * FROM cidades");
+  const result = await pool.query("SELECT * FROM cidades ORDER BY id DESC");
   res.json(result.rows);
 });
-
 
 // =========================
 // 👷 EQUIPES
 // =========================
 app.post("/equipes", async (req, res) => {
-  const { nome } = req.body;
-  const result = await pool.query(
-    "INSERT INTO equipes (nome) VALUES ($1) RETURNING *",
-    [nome]
-  );
-  res.json(result.rows[0]);
+  try {
+    const { nome } = req.body;
+    const result = await pool.query(
+      "INSERT INTO equipes (nome) VALUES ($1) RETURNING *",
+      [nome]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erro ao criar equipe");
+  }
 });
 
 app.get("/equipes", async (req, res) => {
-  const result = await pool.query("SELECT * FROM equipes");
+  const result = await pool.query("SELECT * FROM equipes ORDER BY id DESC");
   res.json(result.rows);
 });
-
 
 // =========================
 // 📁 PROJETOS
 // =========================
 app.post("/projetos", async (req, res) => {
-  const { nome, data, cidade_id, equipe_id } = req.body;
+  try {
+    const { nome, data, cidade_id, equipe_id } = req.body;
 
-  const result = await pool.query(
-    `INSERT INTO projetos (nome, data, cidade_id, equipe_id)
-     VALUES ($1, $2, $3, $4) RETURNING *`,
-    [nome, data, cidade_id, equipe_id]
-  );
+    const result = await pool.query(
+      `INSERT INTO projetos (nome, data, cidade_id, equipe_id)
+       VALUES ($1, $2, $3, $4) RETURNING *`,
+      [nome, data, cidade_id, equipe_id]
+    );
 
-  res.json(result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erro ao criar projeto");
+  }
 });
 
 app.get("/projetos", async (req, res) => {
@@ -107,25 +129,30 @@ app.get("/projetos", async (req, res) => {
     FROM projetos p
     LEFT JOIN cidades c ON p.cidade_id = c.id
     LEFT JOIN equipes e ON p.equipe_id = e.id
+    ORDER BY p.id DESC
   `);
 
   res.json(result.rows);
 });
 
-
 // =========================
-// 📦 MATERIAIS (ligado ao projeto)
+// 📦 MATERIAIS
 // =========================
 app.post("/materiais", async (req, res) => {
-  const { nome, quantidade, projeto_id } = req.body;
+  try {
+    const { nome, quantidade, projeto_id } = req.body;
 
-  const result = await pool.query(
-    `INSERT INTO materiais (nome, quantidade, projeto_id)
-     VALUES ($1, $2, $3) RETURNING *`,
-    [nome, quantidade, projeto_id]
-  );
+    const result = await pool.query(
+      `INSERT INTO materiais (nome, quantidade, projeto_id)
+       VALUES ($1, $2, $3) RETURNING *`,
+      [nome, quantidade || 0, projeto_id]
+    );
 
-  res.json(result.rows[0]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erro ao criar material");
+  }
 });
 
 app.get("/materiais", async (req, res) => {
@@ -135,12 +162,17 @@ app.get("/materiais", async (req, res) => {
       p.nome AS projeto
     FROM materiais m
     LEFT JOIN projetos p ON m.projeto_id = p.id
+    ORDER BY m.id DESC
   `);
 
   res.json(result.rows);
 });
 
+// =========================
+// 🚀 START SERVER (CORRETO PRA RAILWAY)
+// =========================
+const PORT = process.env.PORT || 3000;
 
-app.listen(3000, () => {
-  console.log("Servidor rodando!");
+app.listen(PORT, "0.0.0.0", () => {
+  console.log("Servidor rodando na porta", PORT);
 });
