@@ -92,16 +92,16 @@ app.delete("/projeto/:id", async (req, res) => {
 // PRODUTOS
 // =====================
 app.post("/produtos", async (req, res) => {
-  const { nome } = req.body;
+  const { nome, quantidade } = req.body;
 
-  if (!nome) {
-    return res.status(400).json({ erro: "Nome obrigatório" });
+  if (!nome || quantidade == null) {
+    return res.status(400).json({ erro: "Nome e quantidade obrigatórios" });
   }
 
   try {
     const result = await pool.query(
-      "INSERT INTO produtos (nome) VALUES ($1) RETURNING *",
-      [nome]
+      "INSERT INTO produtos (nome, quantidade) VALUES ($1, $2) RETURNING *",
+      [nome, quantidade]
     );
 
     res.status(201).json(result.rows[0]);
@@ -113,7 +113,7 @@ app.post("/produtos", async (req, res) => {
 
 app.get("/produtos", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM produtos");
+    const result = await pool.query("SELECT * FROM produtos ORDER BY id");
     res.json(result.rows);
   } catch (err) {
     console.error("ERRO LISTAR PRODUTOS:", err);
@@ -121,15 +121,15 @@ app.get("/produtos", async (req, res) => {
   }
 });
 
-// UPDATE PRODUTO
+// UPDATE PRODUTO (AGORA ATUALIZA QUANTIDADE TAMBÉM)
 app.put("/produtos/:id", async (req, res) => {
   const { id } = req.params;
-  const { nome } = req.body;
+  const { nome, quantidade } = req.body;
 
   try {
     const result = await pool.query(
-      "UPDATE produtos SET nome=$1 WHERE id=$2 RETURNING *",
-      [nome, id]
+      "UPDATE produtos SET nome=$1, quantidade=$2 WHERE id=$3 RETURNING *",
+      [nome, quantidade, id]
     );
 
     res.json(result.rows[0]);
