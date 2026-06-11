@@ -18,6 +18,13 @@ const pool = new Pool({
 });
 
 // =====================
+// HEALTH CHECK
+// =====================
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
+// =====================
 // TESTE API
 // =====================
 app.get("/", (req, res) => {
@@ -47,6 +54,7 @@ app.post("/projeto", async (req, res) => {
   }
 });
 
+// LISTAR TODOS
 app.get("/projeto", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM projeto ORDER BY id DESC");
@@ -57,16 +65,45 @@ app.get("/projeto", async (req, res) => {
   }
 });
 
-// UPDATE PROJETO
+// GET POR ID
+app.get("/projeto/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM projeto WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: "Projeto não encontrado" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("ERRO GET PROJETO:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// UPDATE
 app.put("/projeto/:id", async (req, res) => {
   const { id } = req.params;
   const { nome, data, cidade } = req.body;
+
+  if (!nome || !data || !cidade) {
+    return res.status(400).json({ erro: "Campos obrigatórios" });
+  }
 
   try {
     const result = await pool.query(
       "UPDATE projeto SET nome=$1, data=$2, cidade=$3 WHERE id=$4 RETURNING *",
       [nome, data, cidade, id]
     );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ erro: "Projeto não encontrado" });
+    }
 
     res.json(result.rows[0]);
   } catch (err) {
@@ -75,12 +112,20 @@ app.put("/projeto/:id", async (req, res) => {
   }
 });
 
-// DELETE PROJETO
+// DELETE
 app.delete("/projeto/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    await pool.query("DELETE FROM projeto WHERE id=$1", [id]);
+    const result = await pool.query(
+      "DELETE FROM projeto WHERE id=$1 RETURNING *",
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ erro: "Projeto não encontrado" });
+    }
+
     res.json({ mensagem: "Projeto deletado com sucesso" });
   } catch (err) {
     console.error("ERRO DELETE PROJETO:", err);
@@ -111,9 +156,10 @@ app.post("/produtos", async (req, res) => {
   }
 });
 
+// LISTAR TODOS
 app.get("/produtos", async (req, res) => {
   try {
-    const result = await pool.query("SELECT * FROM produtos ORDER BY id");
+    const result = await pool.query("SELECT * FROM produtos ORDER BY id DESC");
     res.json(result.rows);
   } catch (err) {
     console.error("ERRO LISTAR PRODUTOS:", err);
@@ -121,16 +167,45 @@ app.get("/produtos", async (req, res) => {
   }
 });
 
-// UPDATE PRODUTO (AGORA ATUALIZA QUANTIDADE TAMBÉM)
+// GET POR ID
+app.get("/produtos/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(
+      "SELECT * FROM produtos WHERE id = $1",
+      [id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ erro: "Produto não encontrado" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("ERRO GET PRODUTO:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// UPDATE
 app.put("/produtos/:id", async (req, res) => {
   const { id } = req.params;
   const { nome, quantidade } = req.body;
+
+  if (!nome || quantidade == null) {
+    return res.status(400).json({ erro: "Nome e quantidade obrigatórios" });
+  }
 
   try {
     const result = await pool.query(
       "UPDATE produtos SET nome=$1, quantidade=$2 WHERE id=$3 RETURNING *",
       [nome, quantidade, id]
     );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ erro: "Produto não encontrado" });
+    }
 
     res.json(result.rows[0]);
   } catch (err) {
@@ -139,12 +214,20 @@ app.put("/produtos/:id", async (req, res) => {
   }
 });
 
-// DELETE PRODUTO
+// DELETE
 app.delete("/produtos/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    await pool.query("DELETE FROM produtos WHERE id=$1", [id]);
+    const result = await pool.query(
+      "DELETE FROM produtos WHERE id=$1 RETURNING *",
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ erro: "Produto não encontrado" });
+    }
+
     res.json({ mensagem: "Produto deletado com sucesso" });
   } catch (err) {
     console.error("ERRO DELETE PRODUTO:", err);
@@ -177,6 +260,7 @@ app.post("/projeto-produtos", async (req, res) => {
   }
 });
 
+// LISTAR RELAÇÃO
 app.get("/projeto-produtos", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -197,12 +281,41 @@ app.get("/projeto-produtos", async (req, res) => {
   }
 });
 
+// PRODUTOS DE UM PROJETO
+app.get("/projeto/:id/produtos", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const result = await pool.query(`
+      SELECT 
+        pr.nome AS produto,
+        pp.quantidade
+      FROM projeto_produtos pp
+      JOIN produtos pr ON pr.id = pp.produto_id
+      WHERE pp.projeto_id = $1
+    `, [id]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("ERRO LISTAR PRODUTOS DO PROJETO:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 // DELETE RELAÇÃO
 app.delete("/projeto-produtos/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    await pool.query("DELETE FROM projeto_produtos WHERE id=$1", [id]);
+    const result = await pool.query(
+      "DELETE FROM projeto_produtos WHERE id=$1 RETURNING *",
+      [id]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ erro: "Relação não encontrada" });
+    }
+
     res.json({ mensagem: "Relação deletada" });
   } catch (err) {
     console.error("ERRO DELETE RELAÇÃO:", err);
