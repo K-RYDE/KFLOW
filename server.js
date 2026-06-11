@@ -18,7 +18,7 @@ const pool = new Pool({
 });
 
 // =====================
-// HEALTH CHECK
+// TESTE API
 // =====================
 app.get("/", (req, res) => {
   res.send("API rodando 🚀");
@@ -27,8 +27,6 @@ app.get("/", (req, res) => {
 // =====================
 // PROJETOS
 // =====================
-
-// criar projeto
 app.post("/projeto", async (req, res) => {
   const { nome, data, cidade } = req.body;
 
@@ -44,31 +42,29 @@ app.post("/projeto", async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro ao criar projeto" });
+    console.error("ERRO PROJETO:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
-// listar projetos
 app.get("/projeto", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM projeto ORDER BY id DESC");
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ erro: "Erro ao buscar projetos" });
+    console.error("ERRO LISTAR PROJETO:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
 // =====================
 // PRODUTOS
 // =====================
-
-// criar produto
 app.post("/produtos", async (req, res) => {
   const { nome } = req.body;
 
   if (!nome) {
-    return res.status(400).json({ erro: "Nome é obrigatório" });
+    return res.status(400).json({ erro: "Nome obrigatório" });
   }
 
   try {
@@ -79,25 +75,24 @@ app.post("/produtos", async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    res.status(500).json({ erro: "Erro ao criar produto" });
+    console.error("ERRO PRODUTO:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
-// listar produtos
 app.get("/produtos", async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM produtos");
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ erro: "Erro ao buscar produtos" });
+    console.error("ERRO LISTAR PRODUTOS:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
 // =====================
-// RELAÇÃO PROJETO x PRODUTO
+// RELAÇÃO
 // =====================
-
-// vincular produto ao projeto
 app.post("/projeto-produtos", async (req, res) => {
   const { projeto_id, produto_id, quantidade } = req.body;
 
@@ -115,12 +110,12 @@ app.post("/projeto-produtos", async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ erro: "Erro ao vincular produto ao projeto" });
+    console.error("ERRO INSERT RELAÇÃO:", err);
+    res.status(500).json({ erro: err.message });
   }
 });
 
-// listar relação com JOIN
+// 🔥 AQUI ESTAVA O ERRO — AGORA COM DEBUG REAL
 app.get("/projeto-produtos", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -136,16 +131,9 @@ app.get("/projeto-produtos", async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
-    res.status(500).json({ erro: "Erro ao buscar relações" });
+    console.error("ERRO JOIN:", err);
+    res.status(500).json({ erro: err.message });
   }
-});
-
-// =====================
-// ERRO GLOBAL
-// =====================
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ erro: "Erro interno do servidor" });
 });
 
 // =====================
