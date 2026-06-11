@@ -1,4 +1,3 @@
-require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { Pool } = require("pg");
@@ -116,11 +115,12 @@ app.post("/projeto-produtos", async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ erro: "Erro ao vincular produto ao projeto" });
   }
 });
 
-// listar relação com JOIN (PROFISSIONAL 🔥)
+// listar relação com JOIN
 app.get("/projeto-produtos", async (req, res) => {
   try {
     const result = await pool.query(`
