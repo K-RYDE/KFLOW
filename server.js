@@ -57,6 +57,37 @@ app.get("/projeto", async (req, res) => {
   }
 });
 
+// UPDATE PROJETO
+app.put("/projeto/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nome, data, cidade } = req.body;
+
+  try {
+    const result = await pool.query(
+      "UPDATE projeto SET nome=$1, data=$2, cidade=$3 WHERE id=$4 RETURNING *",
+      [nome, data, cidade, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("ERRO UPDATE PROJETO:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// DELETE PROJETO
+app.delete("/projeto/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM projeto WHERE id=$1", [id]);
+    res.json({ mensagem: "Projeto deletado com sucesso" });
+  } catch (err) {
+    console.error("ERRO DELETE PROJETO:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 // =====================
 // PRODUTOS
 // =====================
@@ -90,6 +121,37 @@ app.get("/produtos", async (req, res) => {
   }
 });
 
+// UPDATE PRODUTO
+app.put("/produtos/:id", async (req, res) => {
+  const { id } = req.params;
+  const { nome } = req.body;
+
+  try {
+    const result = await pool.query(
+      "UPDATE produtos SET nome=$1 WHERE id=$2 RETURNING *",
+      [nome, id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("ERRO UPDATE PRODUTO:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// DELETE PRODUTO
+app.delete("/produtos/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM produtos WHERE id=$1", [id]);
+    res.json({ mensagem: "Produto deletado com sucesso" });
+  } catch (err) {
+    console.error("ERRO DELETE PRODUTO:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
 // =====================
 // RELAÇÃO
 // =====================
@@ -110,12 +172,11 @@ app.post("/projeto-produtos", async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    console.error("ERRO INSERT RELAÇÃO:", err);
+    console.error("ERRO RELAÇÃO:", err);
     res.status(500).json({ erro: err.message });
   }
 });
 
-// 🔥 AQUI ESTAVA O ERRO — AGORA COM DEBUG REAL
 app.get("/projeto-produtos", async (req, res) => {
   try {
     const result = await pool.query(`
@@ -132,6 +193,19 @@ app.get("/projeto-produtos", async (req, res) => {
     res.json(result.rows);
   } catch (err) {
     console.error("ERRO JOIN:", err);
+    res.status(500).json({ erro: err.message });
+  }
+});
+
+// DELETE RELAÇÃO
+app.delete("/projeto-produtos/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await pool.query("DELETE FROM projeto_produtos WHERE id=$1", [id]);
+    res.json({ mensagem: "Relação deletada" });
+  } catch (err) {
+    console.error("ERRO DELETE RELAÇÃO:", err);
     res.status(500).json({ erro: err.message });
   }
 });
