@@ -2955,63 +2955,61 @@ window.abrirScannerProximo = function(){
   var ctx = null;
   try{ ctx = JSON.parse(sessionStorage.getItem('kflow_scan_ctx')||'null'); }catch(e){}
   if(!ctx){ window.location.reload(); return; }
-
-  // Guardar qty e ctx para uso após scan
   sessionStorage.setItem('kflow_next_qty', qty);
 
-  // Abrir scanner usando API de câmera do navegador
-  var body = document.querySelector('.sb') || document.body;
-  body.innerHTML = [
-    '<div style="padding:16px">',
-    '<div style="font-size:14px;font-weight:600;margin-bottom:12px;color:#f0f2f5">Aponte para o QR Code do material</div>',
-    '<div style="position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;margin-bottom:12px">',
-    '<video id="kf-video" autoplay playsinline style="width:100%;display:block;border-radius:12px"></video>',
-    '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;border:3px solid #4f8aff;border-radius:12px;pointer-events:none"></div>',
-    '</div>',
-    '<div id="kf-status" style="text-align:center;color:#8b92a0;font-size:13px;margin-bottom:12px">Iniciando câmera...</div>',
-    '<button onclick="pararScanner()" style="width:100%;padding:13px;border-radius:11px;background:#1f2228;color:#8b92a0;border:1px solid rgba(255,255,255,.1);font-size:14px;cursor:pointer">Cancelar</button>',
-    '</div>'
-  ].join('');
+  // Usar input file com capture=environment - funciona no iPhone/Safari e Android
+  var input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.capture = 'environment'; // abre câmera traseira
 
-  var video = document.getElementById('kf-video');
-  var statusEl = document.getElementById('kf-status');
-  var stream = null;
+  input.onchange = function(e){
+    var file = e.target.files[0];
+    if(!file) return;
 
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
-  }).then(function(s){
-    stream = s;
-    video.srcObject = s;
-    statusEl.textContent = 'Aponte para o QR Code...';
-    window._scannerStream = stream;
+    // Usar jsQR para decodificar a imagem capturada
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var img = new Image();
+      img.onload = function(){
+        var canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        var ctx2d = canvas.getContext('2d');
+        ctx2d.drawImage(img, 0, 0);
+        var imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
 
-    // Usar BarcodeDetector se disponível (Android Chrome)
-    if('BarcodeDetector' in window){
-      var detector = new BarcodeDetector({formats:['qr_code']});
-      var scanning = true;
-      function scanFrame(){
-        if(!scanning) return;
-        detector.detect(video).then(function(codes){
-          if(codes.length > 0){
-            scanning = false;
-            var url = codes[0].rawValue;
-            processarQRScan(url, stream);
+        // Tentar decodificar com jsQR
+        if(typeof jsQR !== 'undefined'){
+          var code = jsQR(imageData.data, imageData.width, imageData.height);
+          if(code){
+            processarQRScan(code.data, null);
           } else {
-            requestAnimationFrame(scanFrame);
+            alert('QR Code não reconhecido. Tente novamente com melhor iluminação.');
           }
-        }).catch(function(){ requestAnimationFrame(scanFrame); });
-      }
-      video.addEventListener('loadeddata', scanFrame);
-    } else {
-      // Fallback: usar canvas para decodificar (jsQR via CDN)
-      statusEl.textContent = 'Câmera ativa. Se o scan não funcionar, use o link manual.';
-      carregarJsQR(video, stream, statusEl);
-    }
-  }).catch(function(err){
-    statusEl.textContent = 'Erro ao acessar câmera: ' + err.message;
-  });
-};
+        } else {
+          // Carregar jsQR e tentar novamente
+          var script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+          script.onload = function(){
+            var code = jsQR(imageData.data, imageData.width, imageData.height);
+            if(code){
+              processarQRScan(code.data, null);
+            } else {
+              alert('QR Code não reconhecido. Tente com melhor iluminação ou distância.');
+            }
+          };
+          document.head.appendChild(script);
+        }
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
 
+  // Clicar no input para abrir a câmera
+  input.click();
+}
 window.pararScanner = function(){
   if(window._scannerStream){
     window._scannerStream.getTracks().forEach(function(t){t.stop();});
