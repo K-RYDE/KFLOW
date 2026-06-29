@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0A4D4D">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KFLOW">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230A4D4D'/><text y='.9em' font-size='80' x='50%' text-anchor='middle' fill='white' font-weight='bold'>K</text></svg>">
 <title>KFLOW</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/tabler-icons.min.css">
@@ -2740,16 +2747,37 @@ function checkScanMode(){
 }
 
 function renderLoginScan(produto){
-  // Tela de login antes de mostrar a página de scan
-  var styleTag=document.createElement('style');
-  styleTag.textContent='*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh;display:flex;align-items:center;justify-content:center}.lbox{background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px 24px;width:100%;max-width:360px;margin:20px}.ltitle{font-size:18px;font-weight:700;margin-bottom:4px;text-align:center}.lsub{font-size:12px;color:#8b92a0;text-align:center;margin-bottom:24px}.lfield{margin-bottom:14px}.lfield label{display:block;font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:5px}.lfield input{width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:12px 14px;outline:none;font-family:sans-serif}.lbtn{width:100%;padding:14px;border-radius:11px;background:#4f8aff;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:8px}.lerr{color:#ef4444;font-size:12px;text-align:center;margin-top:10px;min-height:18px}.llogo{width:36px;height:36px;background:#4f8aff;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;margin:0 auto 16px}';
-  document.head.appendChild(styleTag);
-
-  document.body.innerHTML='<div class="lbox"><div class="llogo">K</div><div class="ltitle">KFLOW</div><div class="lsub">Faça login para registrar movimentações</div><div class="lfield"><label>USUÁRIO</label><input type="text" id="ls-user" placeholder="Digite seu usuário" autocomplete="username"></div><div class="lfield"><label>SENHA</label><input type="password" id="ls-pass" placeholder="Digite sua senha" autocomplete="current-password"></div><button class="lbtn" onclick="doLoginScan()">Entrar</button><div class="lerr" id="ls-err"></div></div>';
-
   window._scanProduto = produto;
 
-  // Enter para login
+  // Usar innerHTML direto com style inline - sem styleTag separado
+  document.body.style.cssText = 'margin:0;padding:0;font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh;display:flex;align-items:center;justify-content:center';
+
+  document.body.innerHTML = [
+    '<div style="background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px 24px;width:calc(100% - 40px);max-width:360px">',
+    '<div style="width:40px;height:40px;background:#4f8aff;border-radius:9px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;color:#fff;margin:0 auto 16px">K</div>',
+    '<div style="font-size:18px;font-weight:700;margin-bottom:4px;text-align:center">KFLOW</div>',
+    '<div style="font-size:12px;color:#8b92a0;text-align:center;margin-bottom:24px">Faça login para registrar movimentações</div>',
+    '<div style="margin-bottom:14px"><label style="display:block;font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:5px">USUÁRIO</label>',
+    '<input id="ls-user" type="text" placeholder="Digite seu usuário" autocomplete="username" style="width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:12px 14px;outline:none;font-family:sans-serif;box-sizing:border-box"></div>',
+    '<div style="margin-bottom:14px"><label style="display:block;font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:5px">SENHA</label>',
+    '<input id="ls-pass" type="password" placeholder="Digite sua senha" autocomplete="current-password" style="width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:12px 14px;outline:none;font-family:sans-serif;box-sizing:border-box"></div>',
+    '<div style="margin-bottom:10px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#8b92a0;cursor:pointer"><input type="checkbox" id="ls-lembrar"> Lembrar neste aparelho</label></div>',
+    '<button onclick="doLoginScan()" style="width:100%;padding:14px;border-radius:11px;background:#4f8aff;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px">Entrar</button>',
+    '<div id="ls-err" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;min-height:18px"></div>',
+    '</div>'
+  ].join('');
+
+  // Verificar se tem usuário salvo no localStorage
+  var savedUser = localStorage.getItem('kflow_scan_saved_user');
+  if(savedUser){
+    try {
+      var saved = JSON.parse(savedUser);
+      document.getElementById('ls-user').value = saved.user || '';
+      document.getElementById('ls-pass').value = saved.pass || '';
+      document.getElementById('ls-lembrar').checked = true;
+    } catch(e){}
+  }
+
   document.getElementById('ls-pass').addEventListener('keydown', function(e){
     if(e.key==='Enter') doLoginScan();
   });
@@ -2776,17 +2804,23 @@ window.doLoginScan = function(){
     return;
   }
 
-  // Login OK - salvar usuário logado e mostrar página de scan
+  // Login OK
   window._scUsuario = found;
   sessionStorage.setItem("kflow_scan_user", JSON.stringify(found));
+  // Salvar no localStorage se "lembrar neste aparelho" marcado
+  var lembrar = document.getElementById('ls-lembrar');
+  if(lembrar && lembrar.checked){
+    localStorage.setItem('kflow_scan_saved_user', JSON.stringify({user: found.user, pass: found.pass}));
+  } else {
+    localStorage.removeItem('kflow_scan_saved_user');
+  }
+  // Resetar body antes de renderizar scan
+  document.body.style.cssText = '';
   renderScanPage(window._scanProduto);
 };
 
 function renderScanPage(produto){
-  // Limpar estilos anteriores (do login) e resetar body
-  document.querySelectorAll('style').forEach(function(s){ s.remove(); });
-  document.body.style = '';
-  document.body.className = '';
+
   var css='*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh}.sh{background:#111316;border-bottom:1px solid rgba(255,255,255,.07);padding:14px 18px;display:flex;align-items:center;gap:10px}.sl{width:30px;height:30px;background:#4f8aff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}.sb{padding:16px;max-width:440px;margin:0 auto}.pc{background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:18px;margin-bottom:16px}.pn{font-size:17px;font-weight:700;margin-bottom:2px}.pk{font-size:12px;color:#8b92a0}.qd{font-size:44px;font-weight:700;text-align:center;margin:12px 0 2px;color:#4f8aff}.ql{text-align:center;font-size:12px;color:#8b92a0}.tbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}.tb{padding:16px;border-radius:12px;border:2px solid rgba(255,255,255,.1);background:#111316;color:#f0f2f5;font-size:15px;font-weight:600;cursor:pointer;text-align:center}.tb.ent{border-color:rgba(34,197,94,.4);color:#22c55e}.tb.ent.sel{background:rgba(34,197,94,.15);border-color:#22c55e}.tb.sai{border-color:rgba(239,68,68,.4);color:#ef4444}.tb.sai.sel{background:rgba(239,68,68,.15);border-color:#ef4444}.fs{background:#111316;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;margin-bottom:12px}.fs h3{font-size:12px;font-weight:600;color:#8b92a0;margin-bottom:12px;letter-spacing:.5px}.fi{margin-bottom:12px}.fi label{display:block;font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:5px}.fi input,.fi select,.fi textarea{width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:11px 13px;outline:none;font-family:sans-serif}.fi select option{background:#1f2228}.qc{display:flex;align-items:center;gap:10px}.qc button{width:46px;height:46px;border-radius:10px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer}.qc input{flex:1;text-align:center;font-size:20px;font-weight:700}.tsg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.tsb{padding:11px 4px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:#1f2228;color:#8b92a0;font-size:12px;font-weight:500;cursor:pointer;text-align:center}.tsb.sel{border-color:#4f8aff;background:rgba(79,138,255,.15);color:#4f8aff}.abtns{display:flex;flex-direction:column;gap:10px;margin-top:4px}.abtn{padding:15px;border-radius:11px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:sans-serif}.abtn-m{background:#1f2228;color:#f0f2f5;border:1px solid rgba(255,255,255,.12)}.abtn-f{background:#4f8aff;color:#fff}.abtn-f:disabled{opacity:.6}.sc-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111316;border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:13px 22px;font-size:13px;font-weight:500;z-index:9999;display:none;white-space:nowrap}.il{margin-bottom:10px}.ii{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}.ii:last-child{border-bottom:none}';
   var styleTag=document.createElement('style');
   styleTag.textContent=css;
@@ -2932,6 +2966,18 @@ setTimeout(function(){
     document.getElementById('boot-text').textContent='Conexão lenta... verifique sua internet.';
   }
 },8000);
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      console.log('SW registrado:', reg.scope);
+    }).catch(function(err){
+      console.log('SW erro:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
