@@ -2722,6 +2722,11 @@ function checkScanMode(){
       try{ window._scUsuario = JSON.parse(_savedUser); }catch(e){}
     }
   }
+  // Restaurar itens acumulados
+  if(!window._scItems || window._scItems.length === 0){
+    var _savedItems = sessionStorage.getItem("kflow_scan_items");
+    if(_savedItems){ try{ window._scItems = JSON.parse(_savedItems); }catch(e){} }
+  }
   document.getElementById('boot-text').textContent='Carregando produto...';
   // espera o primeiro snapshot do firestore chegar
   var tries=0;
@@ -2833,7 +2838,7 @@ function renderScanPage(produto){
   html+='<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:9px">TIPO DE MOVIMENTAÇÃO</div><div class="tbtns"><div class="tb ent" onclick="sMov(this,\'entrada\')">&#8679; ENTRADA</div><div class="tb sai" onclick="sMov(this,\'saida\')">&#8681; SAÍDA</div></div></div>';
   html+='<div class="fs" id="sc-form" style="display:none"><h3>ITENS A MOVIMENTAR</h3><div class="il" id="sc-il"></div><div class="fi"><label>QUANTIDADE</label><div class="qc"><button onclick="sQ(-1)">&#8722;</button><input type="number" id="sc-q" value="1" min="1" inputmode="numeric"><button onclick="sQ(1)">+</button></div></div><button class="abtn abtn-m" onclick="addI()" style="width:100%;margin-top:4px">+ Adicionar</button></div>';
   html+='<div class="fs" id="sc-ff" style="display:none"><h3>INFORMAÇÕES DA MOVIMENTAÇÃO</h3><div class="fi"><label>NÚMERO / NOME DO PROJETO</label><input type="text" id="sc-proj" placeholder="Digite o projeto (EQ-12345 ou nome)"></div><div class="fi"><label>EQUIPE</label><select id="sc-eq"><option value="">Selecione a equipe...</option></select></div><div class="fi"><label>RESPONSÁVEL</label><input type="text" id="sc-resp" placeholder="Seu nome"></div><div class="fi" id="sc-tipo-fi"><label>TIPO DE SERVIÇO</label><div class="tsg"><div class="tsb" onclick="sT(this,\'Obra\')">Obra</div><div class="tsb" onclick="sT(this,\'STC\')">STC</div><div class="tsb" onclick="sT(this,\'Transferência\')">Transf.</div><div class="tsb" onclick="sT(this,\'OSI\')">OSI</div><div class="tsb" onclick="sT(this,\'Emergência\')">Emerg.</div><div class="tsb" onclick="sT(this,\'Manutenção\')">Manut.</div></div></div><div class="fi"><label>OBSERVAÇÕES (opcional)</label><textarea id="sc-obs" placeholder="..." style="min-height:55px;resize:none"></textarea></div></div>';
-  html+='<div class="abtns" id="sc-ab" style="display:none"><button class="abtn abtn-m" onclick="if(window._scUsuario)sessionStorage.setItem("kflow_scan_user",JSON.stringify(window._scUsuario));window.location.href=window.location.href.split(\'?\')[0]">+ Outro Material</button><button class="abtn abtn-f" id="sc-fin-btn" onclick="finScan()">&#10003; Finalizar</button></div>';
+  html+='<div class="abtns" id="sc-ab" style="display:none"><button class="abtn" style="background:#22c55e;color:#fff;border:none" onclick="addEScan()">&#128247; Próximo Material</button><button class="abtn abtn-f" id="sc-fin-btn" onclick="finScan()">&#10003; Finalizar Tudo</button></div>';
   html+='</div><div class="sc-toast" id="sc-t"></div>';
 
   document.body.innerHTML=html;
@@ -3113,7 +3118,7 @@ function processarQRScan(url, stream){
   batch.commit().then(function(){
     // Atualizar ctx items e mostrar tela de sucesso
     window._scMov = mov;
-    window._scItems = [{nome:produto.nome, un:produto.unidade, qty:qty}];
+    window._scItems = (window._scItems||[]).concat([{nome:produto.nome, un:produto.unidade, qty:qty}]);
     window._scUsuario = window._scUsuario || JSON.parse(sessionStorage.getItem('kflow_scan_user')||'null');
 
     var resumo = '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px"><span>'+produto.nome+'</span><strong>'+qty+' '+produto.unidade+'</strong></div>';
@@ -3152,6 +3157,18 @@ function processarQRScan(url, stream){
     window.location.reload();
   });
 }
+
+
+// Adicionar item atual e abrir scanner para próximo
+window.addEScan = function(){
+  // Adicionar o item atual à lista primeiro
+  var qty = parseInt(document.getElementById('sc-q').value)||1;
+  if(window._scItems.length === 0 || qty > 0){
+    // Verificar se já tem items ou se deve só abrir scanner
+  }
+  // Abrir scanner para próximo material
+  abrirScannerProximo();
+};
 
 window.sToast=function(msg){var t=document.getElementById('sc-t');if(!t)return;t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},2500);};
 </script>
