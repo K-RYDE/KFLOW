@@ -2909,7 +2909,38 @@ window.finScan=function(){
     return batch.commit().then(function(){
       var total=window._scItems.reduce(function(a,b){return a+b.qty;},0);
       var resumo=window._scItems.map(function(x){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>';}).join('');
-      document.querySelector('.sb').innerHTML='<div style="text-align:center;padding:50px 16px"><div style="font-size:64px;margin-bottom:16px">'+(window._scMov==='entrada'?'&#9989;':'&#128228;')+'</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">'+(window._scMov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div><div style="color:#8b92a0;font-size:13px;margin-bottom:24px">'+window._scItems.length+' item(ns) - '+total+' unidades</div><div style="background:#111316;border-radius:11px;padding:14px;margin-bottom:20px;text-align:left">'+resumo+'<div style="padding-top:8px;font-size:11px;color:#8b92a0">Projeto: '+proj+' - '+resp+'</div></div><button onclick="if(window._scUsuario)sessionStorage.setItem("kflow_scan_user",JSON.stringify(window._scUsuario));window.location.href=window.location.href.split(\'?\')[0]" style="background:#4f8aff;color:#fff;border:none;border-radius:11px;padding:15px 28px;font-size:15px;font-weight:600;cursor:pointer;width:100%">Escanear Outro Material</button></div>';
+      // Salvar contexto do projeto para reutilizar no próximo scan
+var _ctx = {
+  proj: proj, eq: eq, resp: resp, obs: obs,
+  tipo: window._scTipo, mov: window._scMov
+};
+if(window._scUsuario) sessionStorage.setItem("kflow_scan_user", JSON.stringify(window._scUsuario));
+sessionStorage.setItem("kflow_scan_ctx", JSON.stringify(_ctx));
+
+document.querySelector('.sb').innerHTML = [
+  '<div style="text-align:center;padding:30px 16px">',
+  '<div style="font-size:64px;margin-bottom:12px">'+(window._scMov==='entrada'?'&#9989;':'&#128228;')+'</div>',
+  '<div style="font-size:20px;font-weight:700;margin-bottom:6px">'+(window._scMov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div>',
+  '<div style="color:#8b92a0;font-size:13px;margin-bottom:16px">'+window._scItems.length+' item(ns) · '+total+' unidades</div>',
+  '<div style="background:#111316;border-radius:11px;padding:14px;margin-bottom:20px;text-align:left">',
+  resumo,
+  '<div style="padding-top:8px;font-size:11px;color:#8b92a0">Projeto: '+proj+' · '+resp+'</div>',
+  '</div>',
+  // Botão SCANNER para próximo material
+  '<div style="background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:12px">',
+  '<div style="font-size:12px;font-weight:600;color:#8b92a0;margin-bottom:12px">ADICIONAR OUTRO MATERIAL</div>',
+  '<div style="margin-bottom:10px"><label style="font-size:11px;color:#8b92a0;display:block;margin-bottom:5px">QUANTIDADE</label>',
+  '<div style="display:flex;align-items:center;gap:8px">',
+  '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=Math.max(1,(parseInt(i.value)||1)-1)" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">−</button>',
+  '<input type="number" id="nx-qty" value="1" min="1" inputmode="numeric" style="flex:1;text-align:center;font-size:20px;font-weight:700;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;padding:10px;outline:none">',
+  '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=(parseInt(i.value)||1)+1" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">+</button>',
+  '</div></div>',
+  '<button onclick="abrirScannerProximo()" style="width:100%;padding:14px;border-radius:11px;background:#22c55e;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">',
+  '&#128247; Escanear Próximo Material</button>',
+  '</div>',
+  '<button onclick="window.location.href=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,\'/\')" style="width:100%;padding:13px;border-radius:11px;background:#1f2228;color:#8b92a0;border:1px solid rgba(255,255,255,.1);font-size:14px;cursor:pointer">Finalizar</button>',
+  '</div>'
+].join('');
     });
   }).catch(function(err){
     console.error(err);
@@ -2917,6 +2948,213 @@ window.finScan=function(){
     window.sToast('Erro ao salvar. Tente novamente.');
   });
 };
+
+// ── Scanner de câmera para próximo material ──
+window.abrirScannerProximo = function(){
+  var qty = parseInt(document.getElementById('nx-qty').value)||1;
+  var ctx = null;
+  try{ ctx = JSON.parse(sessionStorage.getItem('kflow_scan_ctx')||'null'); }catch(e){}
+  if(!ctx){ window.location.reload(); return; }
+
+  // Guardar qty e ctx para uso após scan
+  sessionStorage.setItem('kflow_next_qty', qty);
+
+  // Abrir scanner usando API de câmera do navegador
+  var body = document.querySelector('.sb') || document.body;
+  body.innerHTML = [
+    '<div style="padding:16px">',
+    '<div style="font-size:14px;font-weight:600;margin-bottom:12px;color:#f0f2f5">Aponte para o QR Code do material</div>',
+    '<div style="position:relative;width:100%;border-radius:12px;overflow:hidden;background:#000;margin-bottom:12px">',
+    '<video id="kf-video" autoplay playsinline style="width:100%;display:block;border-radius:12px"></video>',
+    '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:200px;height:200px;border:3px solid #4f8aff;border-radius:12px;pointer-events:none"></div>',
+    '</div>',
+    '<div id="kf-status" style="text-align:center;color:#8b92a0;font-size:13px;margin-bottom:12px">Iniciando câmera...</div>',
+    '<button onclick="pararScanner()" style="width:100%;padding:13px;border-radius:11px;background:#1f2228;color:#8b92a0;border:1px solid rgba(255,255,255,.1);font-size:14px;cursor:pointer">Cancelar</button>',
+    '</div>'
+  ].join('');
+
+  var video = document.getElementById('kf-video');
+  var statusEl = document.getElementById('kf-status');
+  var stream = null;
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'environment', width: {ideal:1280}, height: {ideal:720} }
+  }).then(function(s){
+    stream = s;
+    video.srcObject = s;
+    statusEl.textContent = 'Aponte para o QR Code...';
+    window._scannerStream = stream;
+
+    // Usar BarcodeDetector se disponível (Android Chrome)
+    if('BarcodeDetector' in window){
+      var detector = new BarcodeDetector({formats:['qr_code']});
+      var scanning = true;
+      function scanFrame(){
+        if(!scanning) return;
+        detector.detect(video).then(function(codes){
+          if(codes.length > 0){
+            scanning = false;
+            var url = codes[0].rawValue;
+            processarQRScan(url, stream);
+          } else {
+            requestAnimationFrame(scanFrame);
+          }
+        }).catch(function(){ requestAnimationFrame(scanFrame); });
+      }
+      video.addEventListener('loadeddata', scanFrame);
+    } else {
+      // Fallback: usar canvas para decodificar (jsQR via CDN)
+      statusEl.textContent = 'Câmera ativa. Se o scan não funcionar, use o link manual.';
+      carregarJsQR(video, stream, statusEl);
+    }
+  }).catch(function(err){
+    statusEl.textContent = 'Erro ao acessar câmera: ' + err.message;
+  });
+};
+
+window.pararScanner = function(){
+  if(window._scannerStream){
+    window._scannerStream.getTracks().forEach(function(t){t.stop();});
+    window._scannerStream = null;
+  }
+  window.location.reload();
+};
+
+function carregarJsQR(video, stream, statusEl){
+  // Carregar jsQR para fallback
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+  script.onload = function(){
+    var canvas = document.createElement('canvas');
+    var ctx2 = canvas.getContext('2d');
+    var scanning = true;
+    function scanCanvas(){
+      if(!scanning || !video.videoWidth) { requestAnimationFrame(scanCanvas); return; }
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx2.drawImage(video,0,0);
+      var img = ctx2.getImageData(0,0,canvas.width,canvas.height);
+      var code = jsQR(img.data, img.width, img.height);
+      if(code){
+        scanning = false;
+        processarQRScan(code.data, stream);
+      } else {
+        requestAnimationFrame(scanCanvas);
+      }
+    }
+    video.addEventListener('loadeddata', scanCanvas);
+    if(video.readyState >= 2) scanCanvas();
+  };
+  document.head.appendChild(script);
+}
+
+function processarQRScan(url, stream){
+  // Parar câmera
+  if(stream) stream.getTracks().forEach(function(t){t.stop();});
+
+  // Extrair scan ID da URL
+  var match = url.match(/[?&]scan=([^&]+)/);
+  if(!match){
+    window.sToast && window.sToast('QR Code inválido');
+    setTimeout(function(){ window.location.reload(); }, 2000);
+    return;
+  }
+  var scanId = match[1];
+
+  // Buscar produto
+  var produto = null;
+  for(var i=0;i<db.produtos.length;i++){
+    if(db.produtos[i].id===scanId){ produto=db.produtos[i]; break; }
+  }
+  if(!produto){
+    window.sToast && window.sToast('Produto não encontrado');
+    setTimeout(function(){ window.location.reload(); }, 2000);
+    return;
+  }
+
+  // Recuperar contexto e quantidade
+  var ctx = null;
+  try{ ctx=JSON.parse(sessionStorage.getItem('kflow_scan_ctx')||'null'); }catch(e){}
+  var qty = parseInt(sessionStorage.getItem('kflow_next_qty'))||1;
+  if(!ctx){ window.location.reload(); return; }
+
+  // Registrar movimentação direto sem pedir info (usando contexto salvo)
+  var dt = new Date().toISOString().split('T')[0];
+  var mov = ctx.mov;
+
+  // Verificar estoque para saída
+  if(mov==='saida' && produto.qty < qty){
+    alert('Estoque insuficiente! Disponível: '+produto.qty+' '+produto.unidade);
+    window.location.reload();
+    return;
+  }
+
+  // Salvar no Firebase
+  var batch = dbf.batch();
+  var newQty = mov==='entrada' ? produto.qty+qty : produto.qty-qty;
+  batch.update(dbf.collection('produtos').doc(produto.id), {qty: newQty});
+
+  var docId = (mov==='entrada'?'e':'s')+'_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
+  if(mov==='entrada'){
+    batch.set(dbf.collection('entradas').doc(docId),{
+      produto:produto.id, qty:qty, data:dt,
+      forn:'QR Scan', resp:ctx.resp, tipoMov:'QR Scan',
+      obs:'Projeto: '+ctx.proj+(ctx.obs?' | '+ctx.obs:'')
+    });
+  } else {
+    batch.set(dbf.collection('saidas').doc(docId),{
+      produto:produto.id, qty:qty, data:dt,
+      projetoTxt:ctx.proj, equipe:ctx.eq,
+      tipoServ:ctx.tipo, resp:ctx.resp, obs:ctx.obs||''
+    });
+  }
+
+  // Mostrar feedback rápido e abrir tela de sucesso
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b0d0f;color:#f0f2f5;font-family:sans-serif"><div style="text-align:center"><div style="font-size:48px">⏳</div><div style="margin-top:12px">Salvando...</div></div></div>';
+
+  batch.commit().then(function(){
+    // Atualizar ctx items e mostrar tela de sucesso
+    window._scMov = mov;
+    window._scItems = [{nome:produto.nome, un:produto.unidade, qty:qty}];
+    window._scUsuario = window._scUsuario || JSON.parse(sessionStorage.getItem('kflow_scan_user')||'null');
+
+    var resumo = '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px"><span>'+produto.nome+'</span><strong>'+qty+' '+produto.unidade+'</strong></div>';
+    var _ctx2 = {proj:ctx.proj, eq:ctx.eq, resp:ctx.resp, obs:ctx.obs, tipo:ctx.tipo, mov:ctx.mov};
+    sessionStorage.setItem('kflow_scan_ctx', JSON.stringify(_ctx2));
+
+    document.body.style.cssText = 'margin:0;padding:0;font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh';
+    document.body.innerHTML = [
+      '<div class="sh" style="background:#111316;border-bottom:1px solid rgba(255,255,255,.07);padding:14px 18px;display:flex;align-items:center;gap:10px">',
+      '<div style="width:30px;height:30px;background:#4f8aff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff">K</div>',
+      '<div style="font-weight:700;font-size:14px">KFLOW</div></div>',
+      '<div style="padding:16px;max-width:440px;margin:0 auto">',
+      '<div style="text-align:center;padding:24px 0 16px">',
+      '<div style="font-size:56px;margin-bottom:10px">'+(mov==='entrada'?'✅':'📤')+'</div>',
+      '<div style="font-size:18px;font-weight:700;margin-bottom:6px">'+(mov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div>',
+      '</div>',
+      '<div style="background:#111316;border-radius:11px;padding:14px;margin-bottom:16px">',
+      resumo,
+      '<div style="padding-top:8px;font-size:11px;color:#8b92a0">Projeto: '+ctx.proj+' · '+ctx.resp+'</div>',
+      '</div>',
+      '<div style="background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:12px">',
+      '<div style="font-size:12px;font-weight:600;color:#8b92a0;margin-bottom:12px">ADICIONAR OUTRO MATERIAL</div>',
+      '<div style="margin-bottom:10px"><label style="font-size:11px;color:#8b92a0;display:block;margin-bottom:5px">QUANTIDADE</label>',
+      '<div style="display:flex;align-items:center;gap:8px">',
+      '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=Math.max(1,(parseInt(i.value)||1)-1)" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">−</button>',
+      '<input type="number" id="nx-qty" value="1" min="1" inputmode="numeric" style="flex:1;text-align:center;font-size:20px;font-weight:700;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;padding:10px;outline:none">',
+      '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=(parseInt(i.value)||1)+1" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">+</button>',
+      '</div></div>',
+      '<button onclick="abrirScannerProximo()" style="width:100%;padding:14px;border-radius:11px;background:#22c55e;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer">&#128247; Escanear Próximo Material</button>',
+      '</div>',
+      '<button onclick="window.location.href=window.location.origin+window.location.pathname" style="width:100%;padding:13px;border-radius:11px;background:#1f2228;color:#8b92a0;border:1px solid rgba(255,255,255,.1);font-size:14px;cursor:pointer">Finalizar</button>',
+      '</div>'
+    ].join('');
+  }).catch(function(err){
+    alert('Erro ao salvar: '+err.message);
+    window.location.reload();
+  });
+}
+
 window.sToast=function(msg){var t=document.getElementById('sc-t');if(!t)return;t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},2500);};
 </script>
 <script>
