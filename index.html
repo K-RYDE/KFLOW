@@ -2711,36 +2711,31 @@ function imprimirSaidas(){
 </script>
 
 <script>
+// ===================== SCAN MODE =====================
+
 function checkScanMode(){
-  var params=new URLSearchParams(window.location.search);
-  var scanId=params.get('scan');
-  if(!scanId)return false;
-  // Restaurar sessão do scan anterior (sessionStorage persiste entre recarregamentos)
+  var params = new URLSearchParams(window.location.search);
+  var scanId = params.get('scan');
+  if(!scanId) return false;
+
+  // Restaurar sessão
   if(!window._scUsuario){
-    var _savedUser = sessionStorage.getItem("kflow_scan_user");
-    if(_savedUser){
-      try{ window._scUsuario = JSON.parse(_savedUser); }catch(e){}
-    }
+    try{ window._scUsuario = JSON.parse(sessionStorage.getItem('kflow_scan_user')||'null'); }catch(e){}
   }
-  // Restaurar itens acumulados
-  if(!window._scItems || window._scItems.length === 0){
-    var _savedItems = sessionStorage.getItem("kflow_scan_items");
-    if(_savedItems){ try{ window._scItems = JSON.parse(_savedItems); }catch(e){} }
-  }
-  document.getElementById('boot-text').textContent='Carregando produto...';
-  // espera o primeiro snapshot do firestore chegar
-  var tries=0;
-  var waitInterval=setInterval(function(){
+
+  document.getElementById('boot-text').textContent = 'Carregando produto...';
+  var tries = 0;
+  var waitInterval = setInterval(function(){
     tries++;
-    var p=null;for(var i=0;i<db.produtos.length;i++)if(db.produtos[i].id===scanId){p=db.produtos[i];break;}
-    if(p||tries>40){
+    var p = null;
+    for(var i=0;i<db.produtos.length;i++) if(db.produtos[i].id===scanId){p=db.produtos[i];break;}
+    if(p || tries > 40){
       clearInterval(waitInterval);
       document.getElementById('boot-screen').classList.add('hidden');
       if(!p){
-        document.body.innerHTML='<div style="font-family:sans-serif;padding:40px;text-align:center;background:#0b0d0f;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center"><div><div style="font-size:48px;margin-bottom:16px">&#10060;</div><h2>Produto não encontrado</h2></div></div>';
+        document.body.innerHTML = '<div style="font-family:sans-serif;padding:40px;text-align:center;background:#0b0d0f;color:#fff;min-height:100vh;display:flex;align-items:center;justify-content:center"><div><div style="font-size:48px">❌</div><h2>Produto não encontrado</h2></div></div>';
         return;
       }
-      // Verificar se já tem sessão ativa neste scan
       if(window._scUsuario){
         renderScanPage(p);
       } else {
@@ -2751,11 +2746,14 @@ function checkScanMode(){
   return true;
 }
 
+// ── Tela de Login ──
 function renderLoginScan(produto){
   window._scanProduto = produto;
-
-  // Usar innerHTML direto com style inline - sem styleTag separado
   document.body.style.cssText = 'margin:0;padding:0;font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh;display:flex;align-items:center;justify-content:center';
+
+  // Verificar credenciais salvas
+  var savedCreds = null;
+  try{ savedCreds = JSON.parse(localStorage.getItem('kflow_scan_saved_user')||'null'); }catch(e){}
 
   document.body.innerHTML = [
     '<div style="background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:28px 24px;width:calc(100% - 40px);max-width:360px">',
@@ -2766,26 +2764,18 @@ function renderLoginScan(produto){
     '<input id="ls-user" type="text" placeholder="Digite seu usuário" autocomplete="username" style="width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:12px 14px;outline:none;font-family:sans-serif;box-sizing:border-box"></div>',
     '<div style="margin-bottom:14px"><label style="display:block;font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:5px">SENHA</label>',
     '<input id="ls-pass" type="password" placeholder="Digite sua senha" autocomplete="current-password" style="width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:12px 14px;outline:none;font-family:sans-serif;box-sizing:border-box"></div>',
-    '<div style="margin-bottom:10px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#8b92a0;cursor:pointer"><input type="checkbox" id="ls-lembrar"> Lembrar neste aparelho</label></div>',
+    '<div style="margin-bottom:14px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;color:#8b92a0;cursor:pointer"><input type="checkbox" id="ls-lembrar"> Lembrar neste aparelho</label></div>',
     '<button onclick="doLoginScan()" style="width:100%;padding:14px;border-radius:11px;background:#4f8aff;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;margin-top:4px">Entrar</button>',
     '<div id="ls-err" style="color:#ef4444;font-size:12px;text-align:center;margin-top:10px;min-height:18px"></div>',
     '</div>'
   ].join('');
 
-  // Verificar se tem usuário salvo no localStorage
-  var savedUser = localStorage.getItem('kflow_scan_saved_user');
-  if(savedUser){
-    try {
-      var saved = JSON.parse(savedUser);
-      document.getElementById('ls-user').value = saved.user || '';
-      document.getElementById('ls-pass').value = saved.pass || '';
-      document.getElementById('ls-lembrar').checked = true;
-    } catch(e){}
+  if(savedCreds){
+    document.getElementById('ls-user').value = savedCreds.user||'';
+    document.getElementById('ls-pass').value = savedCreds.pass||'';
+    document.getElementById('ls-lembrar').checked = true;
   }
-
-  document.getElementById('ls-pass').addEventListener('keydown', function(e){
-    if(e.key==='Enter') doLoginScan();
-  });
+  document.getElementById('ls-pass').addEventListener('keydown',function(e){if(e.key==='Enter')doLoginScan();});
 }
 
 window.doLoginScan = function(){
@@ -2793,114 +2783,279 @@ window.doLoginScan = function(){
   var pass = document.getElementById('ls-pass').value;
   var errEl = document.getElementById('ls-err');
   errEl.textContent = '';
-
-  // Buscar usuário no banco
   var found = null;
-  for(var i=0; i<db.usuarios.length; i++){
-    var u = db.usuarios[i];
-    if((u.user||'').toLowerCase() === user && u.pass === pass){
-      found = u;
-      break;
-    }
+  for(var i=0;i<db.usuarios.length;i++){
+    var u=db.usuarios[i];
+    if((u.user||'').toLowerCase()===user && u.pass===pass){found=u;break;}
   }
-
-  if(!found){
-    errEl.textContent = 'Usuário ou senha incorretos.';
-    return;
-  }
-
-  // Login OK
+  if(!found){ errEl.textContent='Usuário ou senha incorretos.'; return; }
   window._scUsuario = found;
-  sessionStorage.setItem("kflow_scan_user", JSON.stringify(found));
-  // Salvar no localStorage se "lembrar neste aparelho" marcado
+  sessionStorage.setItem('kflow_scan_user', JSON.stringify(found));
   var lembrar = document.getElementById('ls-lembrar');
   if(lembrar && lembrar.checked){
-    localStorage.setItem('kflow_scan_saved_user', JSON.stringify({user: found.user, pass: found.pass}));
+    localStorage.setItem('kflow_scan_saved_user', JSON.stringify({user:found.user, pass:found.pass}));
   } else {
     localStorage.removeItem('kflow_scan_saved_user');
   }
-  // Resetar body antes de renderizar scan
   document.body.style.cssText = '';
   renderScanPage(window._scanProduto);
 };
 
-function renderScanPage(produto){
+// ── Tela Principal de Scan ──
+// Estado global da sessão de scan (persiste enquanto a aba estiver aberta)
+window._scSessao = window._scSessao || {
+  usuario: null, items: [], mov: '', proj: '', eq: '', resp: '', obs: '', tipo: ''
+};
 
-  var css='*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh}.sh{background:#111316;border-bottom:1px solid rgba(255,255,255,.07);padding:14px 18px;display:flex;align-items:center;gap:10px}.sl{width:30px;height:30px;background:#4f8aff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}.sb{padding:16px;max-width:440px;margin:0 auto}.pc{background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:18px;margin-bottom:16px}.pn{font-size:17px;font-weight:700;margin-bottom:2px}.pk{font-size:12px;color:#8b92a0}.qd{font-size:44px;font-weight:700;text-align:center;margin:12px 0 2px;color:#4f8aff}.ql{text-align:center;font-size:12px;color:#8b92a0}.tbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}.tb{padding:16px;border-radius:12px;border:2px solid rgba(255,255,255,.1);background:#111316;color:#f0f2f5;font-size:15px;font-weight:600;cursor:pointer;text-align:center}.tb.ent{border-color:rgba(34,197,94,.4);color:#22c55e}.tb.ent.sel{background:rgba(34,197,94,.15);border-color:#22c55e}.tb.sai{border-color:rgba(239,68,68,.4);color:#ef4444}.tb.sai.sel{background:rgba(239,68,68,.15);border-color:#ef4444}.fs{background:#111316;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;margin-bottom:12px}.fs h3{font-size:12px;font-weight:600;color:#8b92a0;margin-bottom:12px;letter-spacing:.5px}.fi{margin-bottom:12px}.fi label{display:block;font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:5px}.fi input,.fi select,.fi textarea{width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:11px 13px;outline:none;font-family:sans-serif}.fi select option{background:#1f2228}.qc{display:flex;align-items:center;gap:10px}.qc button{width:46px;height:46px;border-radius:10px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer}.qc input{flex:1;text-align:center;font-size:20px;font-weight:700}.tsg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.tsb{padding:11px 4px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:#1f2228;color:#8b92a0;font-size:12px;font-weight:500;cursor:pointer;text-align:center}.tsb.sel{border-color:#4f8aff;background:rgba(79,138,255,.15);color:#4f8aff}.abtns{display:flex;flex-direction:column;gap:10px;margin-top:4px}.abtn{padding:15px;border-radius:11px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:sans-serif}.abtn-m{background:#1f2228;color:#f0f2f5;border:1px solid rgba(255,255,255,.12)}.abtn-f{background:#4f8aff;color:#fff}.abtn-f:disabled{opacity:.6}.sc-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111316;border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:13px 22px;font-size:13px;font-weight:500;z-index:9999;display:none;white-space:nowrap}.il{margin-bottom:10px}.ii{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}.ii:last-child{border-bottom:none}';
-  var styleTag=document.createElement('style');
-  styleTag.textContent=css;
+function renderScanPage(produto){
+  // Restaurar sessão se existir
+  if(window._scUsuario) window._scSessao.usuario = window._scUsuario;
+  window._scProd = produto;
+  window._scMov = window._scSessao.mov || '';
+  window._scItems = window._scSessao.items || [];
+  window._scTipo = window._scSessao.tipo || '';
+
+  var css = '*{box-sizing:border-box;margin:0;padding:0}body{font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh}.sh{background:#111316;border-bottom:1px solid rgba(255,255,255,.07);padding:14px 18px;display:flex;align-items:center;gap:10px}.sl{width:30px;height:30px;background:#4f8aff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff}.sb{padding:16px;max-width:440px;margin:0 auto}.pc{background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:18px;margin-bottom:16px}.pn{font-size:17px;font-weight:700;margin-bottom:2px}.pk{font-size:12px;color:#8b92a0}.qd{font-size:44px;font-weight:700;text-align:center;margin:12px 0 2px;color:#4f8aff}.ql{text-align:center;font-size:12px;color:#8b92a0}.tbtns{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}.tb{padding:16px;border-radius:12px;border:2px solid rgba(255,255,255,.1);background:#111316;color:#f0f2f5;font-size:15px;font-weight:600;cursor:pointer;text-align:center}.tb.ent{border-color:rgba(34,197,94,.4);color:#22c55e}.tb.ent.sel{background:rgba(34,197,94,.15);border-color:#22c55e}.tb.sai{border-color:rgba(239,68,68,.4);color:#ef4444}.tb.sai.sel{background:rgba(239,68,68,.15);border-color:#ef4444}.fs{background:#111316;border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:16px;margin-bottom:12px}.fs h3{font-size:12px;font-weight:600;color:#8b92a0;margin-bottom:12px;letter-spacing:.5px}.fi{margin-bottom:12px}.fi label{display:block;font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:5px}.fi input,.fi select,.fi textarea{width:100%;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;font-size:15px;padding:11px 13px;outline:none;font-family:sans-serif}.fi select option{background:#1f2228}.qc{display:flex;align-items:center;gap:10px}.qc button{width:46px;height:46px;border-radius:10px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer}.qc input{flex:1;text-align:center;font-size:20px;font-weight:700}.tsg{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.tsb{padding:11px 4px;border-radius:9px;border:1px solid rgba(255,255,255,.1);background:#1f2228;color:#8b92a0;font-size:12px;font-weight:500;cursor:pointer;text-align:center}.tsb.sel{border-color:#4f8aff;background:rgba(79,138,255,.15);color:#4f8aff}.abtns{display:flex;flex-direction:column;gap:10px;margin-top:4px}.abtn{padding:15px;border-radius:11px;font-size:15px;font-weight:600;cursor:pointer;border:none;font-family:sans-serif;text-align:center}.abtn-f{background:#4f8aff;color:#fff}.abtn-f:disabled{opacity:.6}.sc-toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#111316;border:1px solid rgba(255,255,255,.15);border-radius:11px;padding:13px 22px;font-size:13px;font-weight:500;z-index:9999;display:none;white-space:nowrap}.il{margin-bottom:10px}.ii{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}.ii:last-child{border-bottom:none}';
+  var styleTag = document.createElement('style');
+  styleTag.id = 'scan-style';
+  // Remover estilo anterior se existir
+  var old = document.getElementById('scan-style');
+  if(old) old.remove();
+  styleTag.textContent = css;
   document.head.appendChild(styleTag);
 
-  var html='';
-  html+='<div class="sh"><div class="sl">K</div><div><div style="font-weight:700;font-size:14px">KFLOW</div><div style="font-size:10px;color:#8b92a0">Almoxarifado</div></div></div>';
-  html+='<div class="sb">';
-  html+='<div class="pc"><div class="pk">'+produto.codigo+'</div><div class="pn">'+produto.nome+'</div><div class="qd" id="sc-qty-atual">'+produto.qty+'</div><div class="ql">em estoque ('+produto.unidade+')</div></div>';
-  html+='<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:9px">TIPO DE MOVIMENTAÇÃO</div><div class="tbtns"><div class="tb ent" onclick="sMov(this,\'entrada\')">&#8679; ENTRADA</div><div class="tb sai" onclick="sMov(this,\'saida\')">&#8681; SAÍDA</div></div></div>';
-  html+='<div class="fs" id="sc-form" style="display:none"><h3>ITENS A MOVIMENTAR</h3><div class="il" id="sc-il"></div><div class="fi"><label>QUANTIDADE</label><div class="qc"><button onclick="sQ(-1)">&#8722;</button><input type="number" id="sc-q" value="1" min="1" inputmode="numeric"><button onclick="sQ(1)">+</button></div></div><button class="abtn abtn-m" onclick="addI()" style="width:100%;margin-top:4px">+ Adicionar</button></div>';
-  html+='<div class="fs" id="sc-ff" style="display:none"><h3>INFORMAÇÕES DA MOVIMENTAÇÃO</h3><div class="fi"><label>NÚMERO / NOME DO PROJETO</label><input type="text" id="sc-proj" placeholder="Digite o projeto (EQ-12345 ou nome)"></div><div class="fi"><label>EQUIPE</label><select id="sc-eq"><option value="">Selecione a equipe...</option></select></div><div class="fi"><label>RESPONSÁVEL</label><input type="text" id="sc-resp" placeholder="Seu nome"></div><div class="fi" id="sc-tipo-fi"><label>TIPO DE SERVIÇO</label><div class="tsg"><div class="tsb" onclick="sT(this,\'Obra\')">Obra</div><div class="tsb" onclick="sT(this,\'STC\')">STC</div><div class="tsb" onclick="sT(this,\'Transferência\')">Transf.</div><div class="tsb" onclick="sT(this,\'OSI\')">OSI</div><div class="tsb" onclick="sT(this,\'Emergência\')">Emerg.</div><div class="tsb" onclick="sT(this,\'Manutenção\')">Manut.</div></div></div><div class="fi"><label>OBSERVAÇÕES (opcional)</label><textarea id="sc-obs" placeholder="..." style="min-height:55px;resize:none"></textarea></div></div>';
-  html+='<div class="abtns" id="sc-ab" style="display:none">'+
-'<button id="sc-next-btn" class="abtn" style="background:#22c55e;color:#fff;border:none;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer" onclick="abrirHtml5Scanner()">&#128247; Próximo Material</button>'+
-'<button class="abtn abtn-f" id="sc-fin-btn" onclick="finScan()">&#10003; Finalizar Tudo</button></div>';
-  html+='</div><div class="sc-toast" id="sc-t"></div>';
+  var html = '';
+  html += '<div class="sh"><div class="sl">K</div><div><div style="font-weight:700;font-size:14px">KFLOW</div><div style="font-size:10px;color:#8b92a0">Almoxarifado</div></div></div>';
+  html += '<div class="sb">';
+  html += '<div class="pc"><div class="pk">'+produto.codigo+'</div><div class="pn">'+produto.nome+'</div><div class="qd" id="sc-qty-atual">'+produto.qty+'</div><div class="ql">em estoque ('+produto.unidade+')</div></div>';
 
-  document.body.innerHTML=html;
+  // Mostrar itens já adicionados na sessão
+  if(window._scItems.length > 0){
+    html += '<div class="fs" style="margin-bottom:12px"><h3>ITENS JÁ ADICIONADOS ('+window._scItems.length+')</h3><div class="il" id="sc-il-prev">';
+    window._scItems.forEach(function(x){ html += '<div class="ii"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>'; });
+    html += '</div></div>';
+  }
 
-  var eqSel=document.getElementById('sc-eq');
-  db.equipes.forEach(function(e){var o=document.createElement('option');o.value=e.id;o.textContent=e.nome;eqSel.appendChild(o);});
-  window._scMov='';window._scProd=produto;window._scItems=[];window._scTipo='';
-  if(window._scUsuario){var rF=document.getElementById('sc-resp');if(rF)rF.value=window._scUsuario.nome||window._scUsuario.user||'';}
+  html += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:9px">TIPO DE MOVIMENTAÇÃO</div><div class="tbtns">';
+  var movSel = window._scSessao.mov;
+  html += '<div class="tb ent'+(movSel==='entrada'?' sel':'')+'" onclick="sMov(this,\'entrada\')">↑ ENTRADA</div>';
+  html += '<div class="tb sai'+(movSel==='saida'?' sel':'')+'" onclick="sMov(this,\'saida\')">↓ SAÍDA</div>';
+  html += '</div></div>';
+
+  var formDisplay = movSel ? 'block' : 'none';
+  html += '<div class="fs" id="sc-form" style="display:'+formDisplay+'"><h3>QUANTIDADE</h3><div class="fi"><div class="qc"><button onclick="sQ(-1)">−</button><input type="number" id="sc-q" value="1" min="1" inputmode="numeric"><button onclick="sQ(1)">+</button></div></div><button class="abtn" style="background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;width:100%;margin-top:4px" onclick="addI()">+ Adicionar à Lista</button></div>';
+
+  var ffDisplay = window._scItems.length > 0 ? 'block' : 'none';
+  html += '<div class="fs" id="sc-ff" style="display:'+ffDisplay+'"><h3>INFORMAÇÕES DO PROJETO</h3>';
+  html += '<div class="fi"><label>PROJETO</label><input type="text" id="sc-proj" placeholder="EQ-12345 ou nome do projeto" value="'+(window._scSessao.proj||'')+'"></div>';
+  html += '<div class="fi"><label>EQUIPE</label><select id="sc-eq"><option value="">Selecione...</option></select></div>';
+  html += '<div class="fi"><label>RESPONSÁVEL</label><input type="text" id="sc-resp" placeholder="Seu nome" value="'+(window._scSessao.resp||(window._scUsuario?window._scUsuario.nome||window._scUsuario.user:''))+'"></div>';
+  html += '<div class="fi" id="sc-tipo-fi" style="display:'+(movSel==='saida'?'block':'none')+'"><label>TIPO DE SERVIÇO</label><div class="tsg"><div class="tsb'+(window._scTipo==='Obra'?' sel':'')+'" onclick="sT(this,\'Obra\')">Obra</div><div class="tsb'+(window._scTipo==='STC'?' sel':'')+'" onclick="sT(this,\'STC\')">STC</div><div class="tsb'+(window._scTipo==='Transferência'?' sel':'')+'" onclick="sT(this,\'Transf.\')">Transf.</div><div class="tsb'+(window._scTipo==='OSI'?' sel':'')+'" onclick="sT(this,\'OSI\')">OSI</div><div class="tsb'+(window._scTipo==='Emergência'?' sel':'')+'" onclick="sT(this,\'Emerg.\')">Emerg.</div><div class="tsb'+(window._scTipo==='Manutenção'?' sel':'')+'" onclick="sT(this,\'Manut.\')">Manut.</div></div></div>';
+  html += '<div class="fi"><label>OBSERVAÇÕES (opcional)</label><textarea id="sc-obs" style="min-height:55px;resize:none">'+(window._scSessao.obs||'')+'</textarea></div>';
+  html += '</div>';
+
+  html += '<div class="abtns" id="sc-ab" style="display:'+(window._scItems.length>0?'flex':'none')+';flex-direction:column;gap:10px">';
+  html += '<button class="abtn" style="background:#22c55e;color:#fff;border:none" onclick="abrirModalScanner()">📷 Escanear Próximo Material</button>';
+  html += '<button class="abtn abtn-f" id="sc-fin-btn" onclick="finScan()">✓ Finalizar Tudo ('+window._scItems.length+' item'+(window._scItems.length>1?'s':'')+')</button>';
+  html += '</div>';
+  html += '</div>';
+  html += '<div class="sc-toast" id="sc-t"></div>';
+  html += '<!-- Modal Scanner -->';
+  html += '<div id="modal-scanner" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0b0d0f;z-index:9999;flex-direction:column">';
+  html += '<div style="padding:16px;display:flex;align-items:center;gap:12px;background:#111316;border-bottom:1px solid rgba(255,255,255,.1)">';
+  html += '<button onclick="fecharModalScanner()" style="background:none;border:none;color:#f0f2f5;font-size:24px;cursor:pointer;padding:0">←</button>';
+  html += '<div style="font-weight:700">Escanear QR Code</div></div>';
+  html += '<div id="html5-qr-reader" style="flex:1;width:100%"></div>';
+  html += '<div id="qr-scan-status" style="padding:14px;text-align:center;color:#8b92a0;font-size:13px;background:#111316">Iniciando câmera...</div>';
+  html += '</div>';
+
+  document.body.innerHTML = html;
+
+  // Preencher equipes
+  var eqSel = document.getElementById('sc-eq');
+  db.equipes.forEach(function(e){
+    var o = document.createElement('option');
+    o.value = e.id;
+    o.textContent = e.nome;
+    if(e.id === window._scSessao.eq) o.selected = true;
+    eqSel.appendChild(o);
+  });
 }
 
-window.sMov=function(el,tipo){
+// Abrir modal scanner SEM sair da página
+window.abrirModalScanner = function(){
+  // Salvar estado atual dos campos
+  window._scSessao.proj = document.getElementById('sc-proj') ? document.getElementById('sc-proj').value.trim() : window._scSessao.proj;
+  window._scSessao.eq   = document.getElementById('sc-eq')   ? document.getElementById('sc-eq').value : window._scSessao.eq;
+  window._scSessao.resp = document.getElementById('sc-resp') ? document.getElementById('sc-resp').value.trim() : window._scSessao.resp;
+  window._scSessao.obs  = document.getElementById('sc-obs')  ? document.getElementById('sc-obs').value : window._scSessao.obs;
+  window._scSessao.mov  = window._scMov;
+  window._scSessao.tipo = window._scTipo;
+  window._scSessao.items = window._scItems;
+
+  if(!window._scSessao.proj || !window._scSessao.resp){
+    window.sToast('Preencha projeto e responsável!'); return;
+  }
+  if(window._scMov==='saida' && !window._scTipo){
+    window.sToast('Selecione o tipo de serviço!'); return;
+  }
+
+  var modal = document.getElementById('modal-scanner');
+  modal.style.display = 'flex';
+
+  // Iniciar scanner
+  iniciarScanner();
+};
+
+window.fecharModalScanner = function(){
+  pararScanner();
+  var modal = document.getElementById('modal-scanner');
+  if(modal) modal.style.display = 'none';
+};
+
+var _scannerAtivo = null;
+
+function iniciarScanner(){
+  var statusEl = document.getElementById('qr-scan-status');
+  if(statusEl) statusEl.textContent = 'Carregando scanner...';
+
+  function startScan(){
+    try {
+      if(_scannerAtivo){
+        try{ _scannerAtivo.stop(); }catch(e){}
+        _scannerAtivo = null;
+      }
+      _scannerAtivo = new Html5Qrcode("html5-qr-reader");
+      _scannerAtivo.start(
+        {facingMode:"environment"},
+        {fps:10, qrbox:{width:280,height:280}},
+        function(text){
+          // QR lido!
+          pararScanner();
+          var modal = document.getElementById('modal-scanner');
+          if(modal) modal.style.display = 'none';
+          // Processar o QR sem recarregar página
+          processarQRSemRecarregar(text);
+        },
+        function(){}
+      ).then(function(){
+        if(statusEl) statusEl.textContent = 'Aponte para o QR Code do material';
+      }).catch(function(err){
+        if(statusEl) statusEl.textContent = 'Erro: '+err;
+      });
+    } catch(e){
+      if(statusEl) statusEl.textContent = 'Erro ao iniciar: '+e.message;
+    }
+  }
+
+  if(typeof Html5Qrcode !== 'undefined'){
+    startScan();
+  } else {
+    var script = document.createElement('script');
+    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+    script.onload = startScan;
+    script.onerror = function(){ if(statusEl) statusEl.textContent = 'Erro ao carregar biblioteca de scanner.'; };
+    document.head.appendChild(script);
+  }
+}
+
+function pararScanner(){
+  if(_scannerAtivo){
+    try{ _scannerAtivo.stop().catch(function(){}); }catch(e){}
+    _scannerAtivo = null;
+  }
+}
+
+// Processar QR sem recarregar a página
+function processarQRSemRecarregar(url){
+  var match = url.match(/[?&]scan=([^&]+)/);
+  if(!match){ window.sToast('QR Code inválido'); return; }
+  var scanId = match[1];
+
+  var produto = null;
+  for(var i=0;i<db.produtos.length;i++) if(db.produtos[i].id===scanId){produto=db.produtos[i];break;}
+  if(!produto){ window.sToast('Produto não encontrado'); return; }
+
+  // Mostrar o novo produto na mesma tela (sem recarregar)
+  window._scSessao.items = window._scItems; // salvar lista atual
+  renderScanPage(produto);
+}
+
+window.sMov = function(el,tipo){
   document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('sel');});
-  el.classList.add('sel');window._scMov=tipo;
-  document.getElementById('sc-form').style.display='block';
-  document.getElementById('sc-tipo-fi').style.display=tipo==='saida'?'block':'none';
+  el.classList.add('sel');
+  window._scMov = tipo;
+  window._scSessao.mov = tipo;
+  document.getElementById('sc-form').style.display = 'block';
+  var tipoFi = document.getElementById('sc-tipo-fi');
+  if(tipoFi) tipoFi.style.display = tipo==='saida' ? 'block' : 'none';
 };
-window.sQ=function(d){var i=document.getElementById('sc-q');i.value=Math.max(1,(parseInt(i.value)||1)+d);};
-window.addI=function(){
-  var qty=parseInt(document.getElementById('sc-q').value)||1;
-  if(qty<=0){window.sToast('Informe uma quantidade válida!');return;}
-  window._scItems.push({prodId:window._scProd.id,nome:window._scProd.nome,un:window._scProd.unidade,qty:qty});
-  var il=document.getElementById('sc-il');
-  il.innerHTML=window._scItems.map(function(x){return'<div class="ii"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>';}).join('');
-  document.getElementById('sc-ff').style.display='block';
-  document.getElementById('sc-ab').style.display='flex';
-  document.getElementById('sc-q').value=1;
+
+window.sQ = function(d){
+  var i = document.getElementById('sc-q');
+  i.value = Math.max(1,(parseInt(i.value)||1)+d);
 };
-window.sT=function(el,tipo){document.querySelectorAll('.tsb').forEach(function(b){b.classList.remove('sel');});el.classList.add('sel');window._scTipo=tipo;};
 
-window.finScan=function(){
-  if(!window._scItems.length){window.sToast('Adicione pelo menos um item!');return;}
-  var proj=document.getElementById('sc-proj').value.trim();
-  var eq=document.getElementById('sc-eq').value;
-  var resp=document.getElementById('sc-resp').value.trim();
-  var obs=document.getElementById('sc-obs').value;
-  if(!proj||!resp){window.sToast('Preencha projeto e responsável!');return;}
-  if(window._scMov==='saida'&&!window._scTipo){window.sToast('Selecione o tipo de serviço!');return;}
+window.addI = function(){
+  if(!window._scMov){ window.sToast('Selecione Entrada ou Saída!'); return; }
+  var qty = parseInt(document.getElementById('sc-q').value)||1;
+  if(qty <= 0){ window.sToast('Informe uma quantidade válida!'); return; }
+  window._scItems.push({prodId:window._scProd.id, nome:window._scProd.nome, un:window._scProd.unidade, qty:qty});
+  window._scSessao.items = window._scItems;
 
-  var btn=document.getElementById('sc-fin-btn');
-  btn.disabled=true;btn.textContent='Salvando...';
+  // Mostrar lista e botões
+  var prevList = document.getElementById('sc-il-prev');
+  if(prevList){
+    prevList.innerHTML += '<div class="ii"><span>'+window._scProd.nome+'</span><strong>'+qty+' '+window._scProd.unidade+'</strong></div>';
+  }
+  document.getElementById('sc-ff').style.display = 'block';
+  var ab = document.getElementById('sc-ab');
+  ab.style.display = 'flex';
+  // Atualizar contador no botão finalizar
+  var finBtn = document.getElementById('sc-fin-btn');
+  if(finBtn) finBtn.textContent = '✓ Finalizar Tudo ('+window._scItems.length+' item'+(window._scItems.length>1?'s':'')+')';
+  document.getElementById('sc-q').value = 1;
+  window.sToast('Item adicionado!');
+};
 
-  var batch=dbf.batch();
-  var dt=new Date().toISOString().split('T')[0];
-  var ok=true;
-  var pendingChecks=[];
+window.sT = function(el,tipo){
+  document.querySelectorAll('.tsb').forEach(function(b){b.classList.remove('sel');});
+  el.classList.add('sel');
+  window._scTipo = tipo;
+  window._scSessao.tipo = tipo;
+};
+
+window.finScan = function(){
+  if(!window._scItems.length){ window.sToast('Adicione pelo menos um item!'); return; }
+  var proj = document.getElementById('sc-proj').value.trim();
+  var eq   = document.getElementById('sc-eq').value;
+  var resp = document.getElementById('sc-resp').value.trim();
+  var obs  = document.getElementById('sc-obs').value;
+  if(!proj||!resp){ window.sToast('Preencha projeto e responsável!'); return; }
+  if(window._scMov==='saida'&&!window._scTipo){ window.sToast('Selecione o tipo de serviço!'); return; }
+
+  var btn = document.getElementById('sc-fin-btn');
+  btn.disabled = true; btn.textContent = 'Salvando...';
+
+  var batch = dbf.batch();
+  var dt = new Date().toISOString().split('T')[0];
+  var ok = true;
+  var pendingChecks = [];
 
   window._scItems.forEach(function(item){
     pendingChecks.push(
       dbf.collection('produtos').doc(item.prodId).get().then(function(doc){
-        if(!doc.exists)return;
-        var pdata=doc.data();
-        var curQty=pdata.qty||0;
+        if(!doc.exists) return;
+        var pdata = doc.data();
+        var curQty = pdata.qty||0;
         if(window._scMov==='entrada'){
           batch.update(dbf.collection('produtos').doc(item.prodId),{qty:curQty+item.qty});
-          var entId='e_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
+          var entId = 'e_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
           batch.set(dbf.collection('entradas').doc(entId),{produto:item.prodId,qty:item.qty,data:dt,forn:'QR Scan',resp:resp,tipoMov:'QR Scan',obs:'Projeto: '+proj+(obs?' | '+obs:'')});
-        }else{
-          if(curQty<item.qty){ok=false;return;}
+        } else {
+          if(curQty < item.qty){ ok=false; return; }
           batch.update(dbf.collection('produtos').doc(item.prodId),{qty:curQty-item.qty});
-          var saiId='s_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
+          var saiId = 's_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
           batch.set(dbf.collection('saidas').doc(saiId),{produto:item.prodId,qty:item.qty,data:dt,projetoTxt:proj,equipe:eq,tipoServ:window._scTipo,resp:resp,obs:obs||''});
         }
       })
@@ -2909,390 +3064,39 @@ window.finScan=function(){
 
   Promise.all(pendingChecks).then(function(){
     if(!ok){
-      btn.disabled=false;btn.textContent='✓ Finalizar';
+      btn.disabled=false; btn.textContent='✓ Finalizar Tudo';
       window.sToast('Estoque insuficiente para um dos itens!');
       return;
     }
     return batch.commit().then(function(){
-      var total=window._scItems.reduce(function(a,b){return a+b.qty;},0);
-      var resumo=window._scItems.map(function(x){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>';}).join('');
-      // Salvar contexto do projeto para reutilizar no próximo scan
-var _ctx = {
-  proj: proj, eq: eq, resp: resp, obs: obs,
-  tipo: window._scTipo, mov: window._scMov
-};
-if(window._scUsuario) sessionStorage.setItem("kflow_scan_user", JSON.stringify(window._scUsuario));
-sessionStorage.setItem("kflow_scan_ctx", JSON.stringify(_ctx));
+      var total = window._scItems.reduce(function(a,b){return a+b.qty;},0);
+      var resumo = window._scItems.map(function(x){
+        return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>';
+      }).join('');
 
-document.querySelector('.sb').innerHTML = [
-  '<div style="text-align:center;padding:30px 16px">',
-  '<div style="font-size:64px;margin-bottom:12px">'+(window._scMov==='entrada'?'&#9989;':'&#128228;')+'</div>',
-  '<div style="font-size:20px;font-weight:700;margin-bottom:6px">'+(window._scMov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div>',
-  '<div style="color:#8b92a0;font-size:13px;margin-bottom:16px">'+window._scItems.length+' item(ns) · '+total+' unidades</div>',
-  '<div style="background:#111316;border-radius:11px;padding:14px;margin-bottom:20px;text-align:left">',
-  resumo,
-  '<div style="padding-top:8px;font-size:11px;color:#8b92a0">Projeto: '+proj+' · '+resp+'</div>',
-  '</div>',
-  // Botão SCANNER para próximo material
-  '<div style="background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:12px">',
-  '<div style="font-size:12px;font-weight:600;color:#8b92a0;margin-bottom:12px">ADICIONAR OUTRO MATERIAL</div>',
-  '<div style="margin-bottom:10px"><label style="font-size:11px;color:#8b92a0;display:block;margin-bottom:5px">QUANTIDADE</label>',
-  '<div style="display:flex;align-items:center;gap:8px">',
-  '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=Math.max(1,(parseInt(i.value)||1)-1)" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">−</button>',
-  '<input type="number" id="nx-qty" value="1" min="1" inputmode="numeric" style="flex:1;text-align:center;font-size:20px;font-weight:700;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;padding:10px;outline:none">',
-  '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=(parseInt(i.value)||1)+1" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">+</button>',
-  '</div></div>',
-  '<button onclick="abrirScannerProximo()" style="width:100%;padding:14px;border-radius:11px;background:#22c55e;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">',
-  '&#128247; Escanear Próximo Material</button>',
-  '</div>',
-  '<button onclick="window.location.href=window.location.origin+window.location.pathname.replace(/\/[^\/]*$/,\'/\')" style="width:100%;padding:13px;border-radius:11px;background:#1f2228;color:#8b92a0;border:1px solid rgba(255,255,255,.1);font-size:14px;cursor:pointer">Finalizar</button>',
-  '</div>'
-].join('');
+      // Limpar sessão
+      window._scItems = [];
+      window._scSessao = {usuario:window._scUsuario, items:[], mov:'', proj:'', eq:'', resp:'', obs:'', tipo:''};
+
+      document.querySelector('.sb').innerHTML = [
+        '<div style="text-align:center;padding:30px 0 20px">',
+        '<div style="font-size:60px;margin-bottom:12px">'+(window._scMov==='entrada'?'✅':'📤')+'</div>',
+        '<div style="font-size:20px;font-weight:700;margin-bottom:6px">'+(window._scMov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div>',
+        '<div style="color:#8b92a0;font-size:13px;margin-bottom:20px">'+window._scItems.length+' item(s) · '+total+' unidades · '+proj+'</div>',
+        '<div style="background:#111316;border-radius:12px;padding:14px;margin-bottom:20px;text-align:left">',
+        resumo,
+        '<div style="padding-top:8px;font-size:11px;color:#8b92a0">Responsável: '+resp+'</div>',
+        '</div>',
+        '<button onclick="window.location.href=window.location.origin+window.location.pathname" style="width:100%;padding:14px;border-radius:11px;background:#4f8aff;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer">Nova Movimentação</button>',
+        '</div>'
+      ].join('');
     });
   }).catch(function(err){
-    console.error(err);
-    btn.disabled=false;btn.textContent='✓ Finalizar';
+    btn.disabled=false; btn.textContent='✓ Finalizar Tudo';
     window.sToast('Erro ao salvar. Tente novamente.');
   });
 };
 
-// ── Scanner de câmera para próximo material ──
-window.abrirScannerProximo = function(){
-  var qty = parseInt(document.getElementById('nx-qty').value)||1;
-  var ctx = null;
-  try{ ctx = JSON.parse(sessionStorage.getItem('kflow_scan_ctx')||'null'); }catch(e){}
-  if(!ctx){ window.location.reload(); return; }
-  sessionStorage.setItem('kflow_next_qty', qty);
-
-  // Usar input file com capture=environment - funciona no iPhone/Safari e Android
-  var input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.capture = 'environment'; // abre câmera traseira
-
-  input.onchange = function(e){
-    var file = e.target.files[0];
-    if(!file) return;
-
-    // Usar jsQR para decodificar a imagem capturada
-    var reader = new FileReader();
-    reader.onload = function(ev){
-      var img = new Image();
-      img.onload = function(){
-        var canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        var ctx2d = canvas.getContext('2d');
-        ctx2d.drawImage(img, 0, 0);
-        var imageData = ctx2d.getImageData(0, 0, canvas.width, canvas.height);
-
-        // Tentar decodificar com jsQR
-        if(typeof jsQR !== 'undefined'){
-          var code = jsQR(imageData.data, imageData.width, imageData.height);
-          if(code){
-            processarQRScan(code.data, null);
-          } else {
-            alert('QR Code não reconhecido. Tente novamente com melhor iluminação.');
-          }
-        } else {
-          // Carregar jsQR e tentar novamente
-          var script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-          script.onload = function(){
-            var code = jsQR(imageData.data, imageData.width, imageData.height);
-            if(code){
-              processarQRScan(code.data, null);
-            } else {
-              alert('QR Code não reconhecido. Tente com melhor iluminação ou distância.');
-            }
-          };
-          document.head.appendChild(script);
-        }
-      };
-      img.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
-  };
-
-  // Clicar no input para abrir a câmera
-  input.click();
-}
-window.pararScanner = function(){
-  if(window._scannerStream){
-    window._scannerStream.getTracks().forEach(function(t){t.stop();});
-    window._scannerStream = null;
-  }
-  window.location.reload();
-};
-
-function carregarJsQR(video, stream, statusEl){
-  // Carregar jsQR para fallback
-  var script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-  script.onload = function(){
-    var canvas = document.createElement('canvas');
-    var ctx2 = canvas.getContext('2d');
-    var scanning = true;
-    function scanCanvas(){
-      if(!scanning || !video.videoWidth) { requestAnimationFrame(scanCanvas); return; }
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx2.drawImage(video,0,0);
-      var img = ctx2.getImageData(0,0,canvas.width,canvas.height);
-      var code = jsQR(img.data, img.width, img.height);
-      if(code){
-        scanning = false;
-        processarQRScan(code.data, stream);
-      } else {
-        requestAnimationFrame(scanCanvas);
-      }
-    }
-    video.addEventListener('loadeddata', scanCanvas);
-    if(video.readyState >= 2) scanCanvas();
-  };
-  document.head.appendChild(script);
-}
-
-function processarQRScan(url, stream){
-  // Parar câmera
-  if(stream) stream.getTracks().forEach(function(t){t.stop();});
-
-  // Extrair scan ID da URL
-  var match = url.match(/[?&]scan=([^&]+)/);
-  if(!match){
-    window.sToast && window.sToast('QR Code inválido');
-    setTimeout(function(){ window.location.reload(); }, 2000);
-    return;
-  }
-  var scanId = match[1];
-
-  // Buscar produto
-  var produto = null;
-  for(var i=0;i<db.produtos.length;i++){
-    if(db.produtos[i].id===scanId){ produto=db.produtos[i]; break; }
-  }
-  if(!produto){
-    window.sToast && window.sToast('Produto não encontrado');
-    setTimeout(function(){ window.location.reload(); }, 2000);
-    return;
-  }
-
-  // Recuperar contexto e quantidade
-  var ctx = null;
-  try{ ctx=JSON.parse(sessionStorage.getItem('kflow_scan_ctx')||'null'); }catch(e){}
-  var qty = parseInt(sessionStorage.getItem('kflow_next_qty'))||1;
-  if(!ctx){ window.location.reload(); return; }
-
-  // Registrar movimentação direto sem pedir info (usando contexto salvo)
-  var dt = new Date().toISOString().split('T')[0];
-  var mov = ctx.mov;
-
-  // Verificar estoque para saída
-  if(mov==='saida' && produto.qty < qty){
-    alert('Estoque insuficiente! Disponível: '+produto.qty+' '+produto.unidade);
-    window.location.reload();
-    return;
-  }
-
-  // Salvar no Firebase
-  var batch = dbf.batch();
-  var newQty = mov==='entrada' ? produto.qty+qty : produto.qty-qty;
-  batch.update(dbf.collection('produtos').doc(produto.id), {qty: newQty});
-
-  var docId = (mov==='entrada'?'e':'s')+'_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
-  if(mov==='entrada'){
-    batch.set(dbf.collection('entradas').doc(docId),{
-      produto:produto.id, qty:qty, data:dt,
-      forn:'QR Scan', resp:ctx.resp, tipoMov:'QR Scan',
-      obs:'Projeto: '+ctx.proj+(ctx.obs?' | '+ctx.obs:'')
-    });
-  } else {
-    batch.set(dbf.collection('saidas').doc(docId),{
-      produto:produto.id, qty:qty, data:dt,
-      projetoTxt:ctx.proj, equipe:ctx.eq,
-      tipoServ:ctx.tipo, resp:ctx.resp, obs:ctx.obs||''
-    });
-  }
-
-  // Mostrar feedback rápido e abrir tela de sucesso
-  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0b0d0f;color:#f0f2f5;font-family:sans-serif"><div style="text-align:center"><div style="font-size:48px">⏳</div><div style="margin-top:12px">Salvando...</div></div></div>';
-
-  batch.commit().then(function(){
-    // Atualizar ctx items e mostrar tela de sucesso
-    window._scMov = mov;
-    window._scItems = (window._scItems||[]).concat([{nome:produto.nome, un:produto.unidade, qty:qty}]);
-    window._scUsuario = window._scUsuario || JSON.parse(sessionStorage.getItem('kflow_scan_user')||'null');
-
-    var resumo = '<div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px"><span>'+produto.nome+'</span><strong>'+qty+' '+produto.unidade+'</strong></div>';
-    var _ctx2 = {proj:ctx.proj, eq:ctx.eq, resp:ctx.resp, obs:ctx.obs, tipo:ctx.tipo, mov:ctx.mov};
-    sessionStorage.setItem('kflow_scan_ctx', JSON.stringify(_ctx2));
-
-    document.body.style.cssText = 'margin:0;padding:0;font-family:sans-serif;background:#0b0d0f;color:#f0f2f5;min-height:100vh';
-    document.body.innerHTML = [
-      '<div class="sh" style="background:#111316;border-bottom:1px solid rgba(255,255,255,.07);padding:14px 18px;display:flex;align-items:center;gap:10px">',
-      '<div style="width:30px;height:30px;background:#4f8aff;border-radius:7px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff">K</div>',
-      '<div style="font-weight:700;font-size:14px">KFLOW</div></div>',
-      '<div style="padding:16px;max-width:440px;margin:0 auto">',
-      '<div style="text-align:center;padding:24px 0 16px">',
-      '<div style="font-size:56px;margin-bottom:10px">'+(mov==='entrada'?'✅':'📤')+'</div>',
-      '<div style="font-size:18px;font-weight:700;margin-bottom:6px">'+(mov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div>',
-      '</div>',
-      '<div style="background:#111316;border-radius:11px;padding:14px;margin-bottom:16px">',
-      resumo,
-      '<div style="padding-top:8px;font-size:11px;color:#8b92a0">Projeto: '+ctx.proj+' · '+ctx.resp+'</div>',
-      '</div>',
-      '<div style="background:#111316;border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:16px;margin-bottom:12px">',
-      '<div style="font-size:12px;font-weight:600;color:#8b92a0;margin-bottom:12px">ADICIONAR OUTRO MATERIAL</div>',
-      '<div style="margin-bottom:10px"><label style="font-size:11px;color:#8b92a0;display:block;margin-bottom:5px">QUANTIDADE</label>',
-      '<div style="display:flex;align-items:center;gap:8px">',
-      '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=Math.max(1,(parseInt(i.value)||1)-1)" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">−</button>',
-      '<input type="number" id="nx-qty" value="1" min="1" inputmode="numeric" style="flex:1;text-align:center;font-size:20px;font-weight:700;background:#1f2228;border:1px solid rgba(255,255,255,.12);border-radius:9px;color:#f0f2f5;padding:10px;outline:none">',
-      '<button onclick="var i=document.getElementById(\'nx-qty\');i.value=(parseInt(i.value)||1)+1" style="width:44px;height:44px;border-radius:9px;background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;font-size:22px;cursor:pointer">+</button>',
-      '</div></div>',
-      '<button onclick="abrirScannerProximo()" style="width:100%;padding:14px;border-radius:11px;background:#22c55e;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer">&#128247; Escanear Próximo Material</button>',
-      '</div>',
-      '<button onclick="window.location.href=window.location.origin+window.location.pathname" style="width:100%;padding:13px;border-radius:11px;background:#1f2228;color:#8b92a0;border:1px solid rgba(255,255,255,.1);font-size:14px;cursor:pointer">Finalizar</button>',
-      '</div>'
-    ].join('');
-  }).catch(function(err){
-    alert('Erro ao salvar: '+err.message);
-    window.location.reload();
-  });
-}
-
-
-// Adicionar item atual e abrir scanner para próximo
-// Validar antes de abrir scanner (label onclick retorna true para permitir o input abrir)
-
-window.abrirHtml5Scanner = function(){
-  if(!window.prepareNextScan()) return;
-
-  // Mostrar tela do scanner
-  var sb = document.querySelector('.sb') || document.body;
-  sb.innerHTML = [
-    '<div style="padding:16px;max-width:440px;margin:0 auto">',
-    '<div style="font-size:14px;font-weight:600;color:#f0f2f5;margin-bottom:12px;text-align:center">Aponte a câmera para o QR Code</div>',
-    '<div id="html5-qr-reader" style="width:100%;border-radius:12px;overflow:hidden;background:#000;margin-bottom:12px"></div>',
-    '<div id="qr-status" style="text-align:center;color:#8b92a0;font-size:13px;margin-bottom:12px">Iniciando câmera...</div>',
-    '<button onclick="pararHtml5Scanner()" style="width:100%;padding:13px;border-radius:11px;background:#1f2228;color:#8b92a0;border:1px solid rgba(255,255,255,.1);font-size:14px;cursor:pointer">Cancelar</button>',
-    '</div>'
-  ].join('');
-
-  // Carregar html5-qrcode
-  if(typeof Html5Qrcode !== 'undefined'){
-    iniciarHtml5Qrcode();
-  } else {
-    var script = document.createElement('script');
-    script.src = 'https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-    script.onload = iniciarHtml5Qrcode;
-    script.onerror = function(){
-      document.getElementById('qr-status').textContent = 'Erro ao carregar scanner. Tente novamente.';
-    };
-    document.head.appendChild(script);
-  }
-};
-
-function iniciarHtml5Qrcode(){
-  try {
-    window._html5QrScanner = new Html5Qrcode("html5-qr-reader");
-    var config = {
-      fps: 10,
-      qrbox: { width: 250, height: 250 },
-      aspectRatio: 1.0
-    };
-    window._html5QrScanner.start(
-      { facingMode: "environment" },
-      config,
-      function(decodedText){
-        // QR Code lido com sucesso!
-        window._html5QrScanner.stop().then(function(){
-          window._html5QrScanner = null;
-          processarQRScan(decodedText, null);
-        });
-      },
-      function(errorMsg){ /* ignorar erros de frame */ }
-    ).then(function(){
-      var el = document.getElementById('qr-status');
-      if(el) el.textContent = 'Câmera ativa - aponte para o QR Code';
-    }).catch(function(err){
-      var el = document.getElementById('qr-status');
-      if(el) el.textContent = 'Erro: ' + err;
-    });
-  } catch(e) {
-    var el = document.getElementById('qr-status');
-    if(el) el.textContent = 'Erro ao iniciar scanner: ' + e.message;
-  }
-}
-
-window.pararHtml5Scanner = function(){
-  if(window._html5QrScanner){
-    window._html5QrScanner.stop().catch(function(){});
-    window._html5QrScanner = null;
-  }
-  // Voltar para a tela de scan do produto atual
-  var ctx = null;
-  try{ ctx = JSON.parse(sessionStorage.getItem('kflow_scan_ctx')||'null'); }catch(e){}
-  var prod = window._scProd;
-  if(prod) renderScanPage(prod);
-  else window.location.reload();
-};
-
-window.prepareNextScan = function(){
-  if(!window._scItems || window._scItems.length === 0){
-    window.sToast('Adicione pelo menos 1 item antes de escanear o próximo!');
-    return false; // impede o label de abrir o input
-  }
-  var proj = document.getElementById('sc-proj') ? document.getElementById('sc-proj').value.trim() : '';
-  var resp = document.getElementById('sc-resp') ? document.getElementById('sc-resp').value.trim() : '';
-  if(!proj || !resp){ window.sToast('Preencha projeto e responsável primeiro!'); return false; }
-  if(window._scMov==='saida' && !window._scTipo){ window.sToast('Selecione o tipo de serviço!'); return false; }
-  var eq  = document.getElementById('sc-eq')  ? document.getElementById('sc-eq').value : '';
-  var obs = document.getElementById('sc-obs') ? document.getElementById('sc-obs').value : '';
-  var ctx = {proj:proj, eq:eq, resp:resp, obs:obs, tipo:window._scTipo, mov:window._scMov};
-  sessionStorage.setItem('kflow_scan_ctx', JSON.stringify(ctx));
-  if(window._scUsuario) sessionStorage.setItem('kflow_scan_user', JSON.stringify(window._scUsuario));
-  sessionStorage.setItem('kflow_scan_items', JSON.stringify(window._scItems));
-  return true; // permite o label abrir o input file
-};
-
-// Processar foto tirada pelo input file
-window.onNextScan = function(input){
-  var file = input.files[0];
-  if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(ev){
-    var img = new Image();
-    img.onload = function(){
-      var canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
-      canvas.getContext('2d').drawImage(img, 0, 0);
-      var imageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
-      function tryDecode(){
-        if(typeof jsQR !== 'undefined'){
-          var code = jsQR(imageData.data, imageData.width, imageData.height);
-          if(code){
-            processarQRScan(code.data, null);
-          } else {
-            window.sToast('QR Code não reconhecido. Tente outra foto.');
-            input.value = '';
-          }
-        } else {
-          var script = document.createElement('script');
-          script.src = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
-          script.onload = tryDecode;
-          document.head.appendChild(script);
-        }
-      }
-      tryDecode();
-    };
-    img.src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-};
-
-// Manter addEScan como alias por compatibilidade
-window.addEScan = function(){ window.prepareNextScan(); };
 
 
 window.sToast=function(msg){var t=document.getElementById('sc-t');if(!t)return;t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},2500);};
