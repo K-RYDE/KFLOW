@@ -2708,10 +2708,12 @@ function checkScanMode(){
   var params=new URLSearchParams(window.location.search);
   var scanId=params.get('scan');
   if(!scanId)return false;
-  // Restaurar sessão do scan anterior se existir
-  if(window._scUsuarioSalvo && !window._scUsuario){
-    window._scUsuario = window._scUsuarioSalvo;
-    window._scUsuarioSalvo = null;
+  // Restaurar sessão do scan anterior (sessionStorage persiste entre recarregamentos)
+  if(!window._scUsuario){
+    var _savedUser = sessionStorage.getItem("kflow_scan_user");
+    if(_savedUser){
+      try{ window._scUsuario = JSON.parse(_savedUser); }catch(e){}
+    }
   }
   document.getElementById('boot-text').textContent='Carregando produto...';
   // espera o primeiro snapshot do firestore chegar
@@ -2776,6 +2778,7 @@ window.doLoginScan = function(){
 
   // Login OK - salvar usuário logado e mostrar página de scan
   window._scUsuario = found;
+  sessionStorage.setItem("kflow_scan_user", JSON.stringify(found));
   renderScanPage(window._scanProduto);
 };
 
@@ -2792,7 +2795,7 @@ function renderScanPage(produto){
   html+='<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:9px">TIPO DE MOVIMENTAÇÃO</div><div class="tbtns"><div class="tb ent" onclick="sMov(this,\'entrada\')">&#8679; ENTRADA</div><div class="tb sai" onclick="sMov(this,\'saida\')">&#8681; SAÍDA</div></div></div>';
   html+='<div class="fs" id="sc-form" style="display:none"><h3>ITENS A MOVIMENTAR</h3><div class="il" id="sc-il"></div><div class="fi"><label>QUANTIDADE</label><div class="qc"><button onclick="sQ(-1)">&#8722;</button><input type="number" id="sc-q" value="1" min="1" inputmode="numeric"><button onclick="sQ(1)">+</button></div></div><button class="abtn abtn-m" onclick="addI()" style="width:100%;margin-top:4px">+ Adicionar</button></div>';
   html+='<div class="fs" id="sc-ff" style="display:none"><h3>INFORMAÇÕES DA MOVIMENTAÇÃO</h3><div class="fi"><label>NÚMERO / NOME DO PROJETO</label><input type="text" id="sc-proj" placeholder="Digite o projeto (EQ-12345 ou nome)"></div><div class="fi"><label>EQUIPE</label><select id="sc-eq"><option value="">Selecione a equipe...</option></select></div><div class="fi"><label>RESPONSÁVEL</label><input type="text" id="sc-resp" placeholder="Seu nome"></div><div class="fi" id="sc-tipo-fi"><label>TIPO DE SERVIÇO</label><div class="tsg"><div class="tsb" onclick="sT(this,\'Obra\')">Obra</div><div class="tsb" onclick="sT(this,\'STC\')">STC</div><div class="tsb" onclick="sT(this,\'Transferência\')">Transf.</div><div class="tsb" onclick="sT(this,\'OSI\')">OSI</div><div class="tsb" onclick="sT(this,\'Emergência\')">Emerg.</div><div class="tsb" onclick="sT(this,\'Manutenção\')">Manut.</div></div></div><div class="fi"><label>OBSERVAÇÕES (opcional)</label><textarea id="sc-obs" placeholder="..." style="min-height:55px;resize:none"></textarea></div></div>';
-  html+='<div class="abtns" id="sc-ab" style="display:none"><button class="abtn abtn-m" onclick="window._scUsuarioSalvo=window._scUsuario;window.location.href=window.location.href.split(\'?\')[0]">+ Outro Material</button><button class="abtn abtn-f" id="sc-fin-btn" onclick="finScan()">&#10003; Finalizar</button></div>';
+  html+='<div class="abtns" id="sc-ab" style="display:none"><button class="abtn abtn-m" onclick="if(window._scUsuario)sessionStorage.setItem("kflow_scan_user",JSON.stringify(window._scUsuario));window.location.href=window.location.href.split(\'?\')[0]">+ Outro Material</button><button class="abtn abtn-f" id="sc-fin-btn" onclick="finScan()">&#10003; Finalizar</button></div>';
   html+='</div><div class="sc-toast" id="sc-t"></div>';
 
   document.body.innerHTML=html;
@@ -2868,7 +2871,7 @@ window.finScan=function(){
     return batch.commit().then(function(){
       var total=window._scItems.reduce(function(a,b){return a+b.qty;},0);
       var resumo=window._scItems.map(function(x){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>';}).join('');
-      document.querySelector('.sb').innerHTML='<div style="text-align:center;padding:50px 16px"><div style="font-size:64px;margin-bottom:16px">'+(window._scMov==='entrada'?'&#9989;':'&#128228;')+'</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">'+(window._scMov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div><div style="color:#8b92a0;font-size:13px;margin-bottom:24px">'+window._scItems.length+' item(ns) - '+total+' unidades</div><div style="background:#111316;border-radius:11px;padding:14px;margin-bottom:20px;text-align:left">'+resumo+'<div style="padding-top:8px;font-size:11px;color:#8b92a0">Projeto: '+proj+' - '+resp+'</div></div><button onclick="window._scUsuarioSalvo=window._scUsuario;window.location.href=window.location.href.split(\'?\')[0]" style="background:#4f8aff;color:#fff;border:none;border-radius:11px;padding:15px 28px;font-size:15px;font-weight:600;cursor:pointer;width:100%">Escanear Outro Material</button></div>';
+      document.querySelector('.sb').innerHTML='<div style="text-align:center;padding:50px 16px"><div style="font-size:64px;margin-bottom:16px">'+(window._scMov==='entrada'?'&#9989;':'&#128228;')+'</div><div style="font-size:20px;font-weight:700;margin-bottom:8px">'+(window._scMov==='entrada'?'Entrada Registrada!':'Saída Registrada!')+'</div><div style="color:#8b92a0;font-size:13px;margin-bottom:24px">'+window._scItems.length+' item(ns) - '+total+' unidades</div><div style="background:#111316;border-radius:11px;padding:14px;margin-bottom:20px;text-align:left">'+resumo+'<div style="padding-top:8px;font-size:11px;color:#8b92a0">Projeto: '+proj+' - '+resp+'</div></div><button onclick="if(window._scUsuario)sessionStorage.setItem("kflow_scan_user",JSON.stringify(window._scUsuario));window.location.href=window.location.href.split(\'?\')[0]" style="background:#4f8aff;color:#fff;border:none;border-radius:11px;padding:15px 28px;font-size:15px;font-weight:600;cursor:pointer;width:100%">Escanear Outro Material</button></div>';
     });
   }).catch(function(err){
     console.error(err);
