@@ -2229,6 +2229,7 @@ function salvarSaida(){
   var novaQty=p.qty-qty;
   fsUpdate('produtos',pid,{qty:novaQty});
   fsSave('saidas',{id:genId(),produto:pid,qty:qty,data:data,projetoTxt:projTxt,equipe:eq,tipoServ:selectedTipo,resp:resp,obs:document.getElementById('sai-obs').value});
+  registrarProjetoAutomatico(projTxt, eq, resp, [{nome:p.nome,qty:qty}], data);
   closeModal('modal-saida');selectedTipo='';
   document.querySelectorAll('.ro').forEach(function(r){r.classList.remove('sel');});
   toast('Saída de '+qty+' '+p.unidade+' registrada!','success');
@@ -2832,7 +2833,7 @@ function renderScanPage(produto){
   // Mostrar itens já adicionados na sessão
   if(window._scItems.length > 0){
     html += '<div class="fs" style="margin-bottom:12px"><h3>ITENS JÁ ADICIONADOS ('+window._scItems.length+')</h3><div class="il" id="sc-il-prev">';
-    window._scItems.forEach(function(x){ html += '<div class="ii"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>'; });
+    window._scItems.forEach(function(x,idx){ html += '<div class="ii"><span style="flex:1">'+x.nome+'</span><strong style="margin-right:10px">'+x.qty+' '+x.un+'</strong><button onclick="removerItem('+idx+')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:7px;width:28px;height:28px;font-size:16px;cursor:pointer;flex-shrink:0">×</button></div>'; });
     html += '</div></div>';
   }
 
@@ -3018,7 +3019,10 @@ window.addI = function(){
   // Mostrar lista e botões
   var prevList = document.getElementById('sc-il-prev');
   if(prevList){
-    prevList.innerHTML += '<div class="ii"><span>'+window._scProd.nome+'</span><strong>'+qty+' '+window._scProd.unidade+'</strong></div>';
+    // Rerender a lista completa com botões de remover
+    prevList.innerHTML = window._scItems.map(function(x,idx){
+      return '<div class="ii"><span style="flex:1">'+x.nome+'</span><strong style="margin-right:10px">'+x.qty+' '+x.un+'</strong><button onclick="removerItem('+idx+')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:7px;width:28px;height:28px;font-size:16px;cursor:pointer;flex-shrink:0">×</button></div>';
+    }).join('');
   }
   document.getElementById('sc-ff').style.display = 'block';
   var ab = document.getElementById('sc-ab');
@@ -3085,6 +3089,10 @@ window.finScan = function(){
       return;
     }
     return batch.commit().then(function(){
+      // Registrar projeto automaticamente
+      if(window._scMov === 'saida'){
+        registrarProjetoAutomatico(proj, eq, resp, window._scItems, dt);
+      }
       var total = window._scItems.reduce(function(a,b){return a+b.qty;},0);
       var resumo = window._scItems.map(function(x){
         return '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>';
@@ -3114,6 +3122,74 @@ window.finScan = function(){
 };
 
 
+
+window.removerItem = function(idx){
+  window._scItems.splice(idx, 1);
+  window._scSessao.items = window._scItems.slice();
+
+  // Atualizar lista visualmente
+  var prevList = document.getElementById('sc-il-prev');
+  if(prevList){
+    if(window._scItems.length === 0){
+      prevList.innerHTML = '<div style="text-align:center;color:#8b92a0;font-size:13px;padding:8px">Nenhum item adicionado</div>';
+      // Esconder botões de finalizar se não tem itens
+      var ab = document.getElementById('sc-ab');
+      if(ab) ab.style.display = 'none';
+      document.getElementById('sc-ff').style.display = 'none';
+    } else {
+      prevList.innerHTML = window._scItems.map(function(x,i){
+        return '<div class="ii"><span style="flex:1">'+x.nome+'</span><strong style="margin-right:10px">'+x.qty+' '+x.un+'</strong><button onclick="removerItem('+i+')" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);color:#ef4444;border-radius:7px;width:28px;height:28px;font-size:16px;cursor:pointer;flex-shrink:0">×</button></div>';
+      }).join('');
+      // Atualizar contador no botão finalizar
+      var finBtn = document.getElementById('sc-fin-btn');
+      if(finBtn) finBtn.textContent = '✓ Finalizar Tudo ('+window._scItems.length+' item'+(window._scItems.length>1?'s':'')+')';
+      // Atualizar título
+      var header = prevList.previousElementSibling;
+      if(header) header.textContent = 'ITENS JÁ ADICIONADOS ('+window._scItems.length+')';
+    }
+  }
+  window.sToast('Item removido');
+};
+
+
+// Registrar projeto automaticamente ao finalizar saída via scan ou manual
+function registrarProjetoAutomatico(projetoTxt, equipeId, resp, itensSaida, dt){
+  if(!projetoTxt) return;
+
+  // Verificar se já existe projeto com esse nome/número
+  var projetoExistente = null;
+  for(var i=0;i<db.projetos.length;i++){
+    var p = db.projetos[i];
+    // Comparar por nome OU por número
+    if((p.nome && p.nome.trim().toLowerCase() === projetoTxt.trim().toLowerCase()) ||
+       (p.num  && p.num.trim().toLowerCase()  === projetoTxt.trim().toLowerCase())){
+      projetoExistente = p;
+      break;
+    }
+  }
+
+  if(projetoExistente){
+    // Projeto já existe - apenas atualizar status para "em andamento" se estava inativo
+    if(projetoExistente.status === 'inativo' || !projetoExistente.status){
+      fsUpdate('projetos', projetoExistente.id, {status:'ativo', ultimaMovimento:dt});
+    } else {
+      fsUpdate('projetos', projetoExistente.id, {ultimaMovimento:dt});
+    }
+  } else {
+    // Criar novo projeto automaticamente
+    var novoProjeto = {
+      id: genId(),
+      nome: projetoTxt,
+      num: projetoTxt,
+      status: 'ativo',
+      inicio: dt,
+      desc: 'Projeto criado automaticamente via lançamento de material',
+      ultimaMovimento: dt,
+      criadoAuto: true
+    };
+    fsSave('projetos', novoProjeto);
+  }
+}
 
 window.sToast=function(msg){var t=document.getElementById('sc-t');if(!t)return;t.textContent=msg;t.style.display='block';setTimeout(function(){t.style.display='none';},2500);};
 </script>
