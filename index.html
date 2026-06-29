@@ -2891,7 +2891,7 @@ window.abrirModalScanner = function(){
   window._scSessao.obs  = document.getElementById('sc-obs')  ? document.getElementById('sc-obs').value : window._scSessao.obs;
   window._scSessao.mov  = window._scMov;
   window._scSessao.tipo = window._scTipo;
-  window._scSessao.items = window._scItems;
+  window._scSessao.items = window._scItems.slice(); // cópia para não perder
 
   if(!window._scSessao.proj || !window._scSessao.resp){
     window.sToast('Preencha projeto e responsável!'); return;
@@ -2976,8 +2976,20 @@ function processarQRSemRecarregar(url){
   for(var i=0;i<db.produtos.length;i++) if(db.produtos[i].id===scanId){produto=db.produtos[i];break;}
   if(!produto){ window.sToast('Produto não encontrado'); return; }
 
-  // Mostrar o novo produto na mesma tela (sem recarregar)
-  window._scSessao.items = window._scItems; // salvar lista atual
+  // Salvar campos atuais na sessão antes de trocar de produto
+  var projEl = document.getElementById('sc-proj');
+  var eqEl   = document.getElementById('sc-eq');
+  var respEl = document.getElementById('sc-resp');
+  var obsEl  = document.getElementById('sc-obs');
+  if(projEl) window._scSessao.proj = projEl.value.trim();
+  if(eqEl)   window._scSessao.eq   = eqEl.value;
+  if(respEl) window._scSessao.resp = respEl.value.trim();
+  if(obsEl)  window._scSessao.obs  = obsEl.value;
+  window._scSessao.mov   = window._scMov;
+  window._scSessao.tipo  = window._scTipo;
+  window._scSessao.items = window._scItems.slice(); // cópia da lista atual
+
+  // Renderizar novo produto mantendo toda a sessão
   renderScanPage(produto);
 }
 
@@ -3026,6 +3038,10 @@ window.sT = function(el,tipo){
 };
 
 window.finScan = function(){
+  // Garantir que _scItems está sincronizado com _scSessao.items
+  if(!window._scItems || !window._scItems.length){
+    window._scItems = window._scSessao.items || [];
+  }
   if(!window._scItems.length){ window.sToast('Adicione pelo menos um item!'); return; }
   var proj = document.getElementById('sc-proj').value.trim();
   var eq   = document.getElementById('sc-eq').value;
