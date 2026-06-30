@@ -1403,6 +1403,7 @@ textarea{resize:vertical;min-height:70px}
 .qrcard .qc{font-size:11px;color:var(--text3)}
 @media(max-width:1100px){.sg{grid-template-columns:repeat(2,1fr)}.dg{grid-template-columns:1fr}}
 @media(max-width:768px){.sidebar{display:none}.main{margin-left:0}.sg{grid-template-columns:1fr 1fr}}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 </style>
 </head>
 <body>
@@ -1911,8 +1912,9 @@ function applyUserUI(found){
 
 function showLoginErr(msg){document.getElementById('login-err').textContent=msg;}
 
-function doLogout(){
-  if(!confirm('Deseja sair do KFLOW?'))return;
+async function doLogout(){
+  var ok = await confirmDialog('Você precisará fazer login novamente para acessar o sistema.', {title:'Sair do KFLOW?', confirmText:'Sair', danger:false});
+  if(!ok)return;
   currentUser=null;
   try{sessionStorage.removeItem('kflow_session');}catch(e){}
   document.getElementById('app').classList.add('hidden');
@@ -2521,8 +2523,9 @@ function salvarSaida(){
   toast('Saída de '+qty+' '+p.unidade+' registrada!','success');
 }
 
-function delMov(tipo,id){
-  if(!confirm('Remover este registro? O estoque NÃO será revertido.'))return;
+async function delMov(tipo,id){
+  var ok = await confirmDialog('O estoque NÃO será revertido automaticamente. Esta ação não pode ser desfeita.', {title:'Remover registro?', confirmText:'Remover'});
+  if(!ok)return;
   fsDelete(tipo==='entrada'?'entradas':'saidas',id);
   toast('Registro removido','info');
 }
@@ -2581,8 +2584,9 @@ function editProduto(id){
   document.getElementById('mp-local').value=p.local||'';
   document.getElementById('mp-obs').value=p.obs||'';
 }
-function delProduto(id){
-  if(!confirm('Deletar este produto?'))return;
+async function delProduto(id){
+  var ok = await confirmDialog('O produto será removido permanentemente do estoque. Esta ação não pode ser desfeita.', {title:'Deletar produto?', confirmText:'Deletar'});
+  if(!ok)return;
   fsDelete('produtos',id);
   toast('Produto removido','info');
 }
@@ -2619,7 +2623,12 @@ function editProjeto(id){
   document.getElementById('mproj-fim').value=p.fim||'';
   document.getElementById('mproj-desc').value=p.desc||'';
 }
-function delProjeto(id){if(!confirm('Deletar projeto?'))return;fsDelete('projetos',id);}
+async function delProjeto(id){
+  var ok = await confirmDialog('O projeto será removido permanentemente.', {title:'Deletar projeto?', confirmText:'Deletar'});
+  if(!ok)return;
+  fsDelete('projetos',id);
+  toast('Projeto removido','info');
+}
 
 function renderEquipes(){
   var grid=document.getElementById('equipes-grid');
@@ -2650,7 +2659,12 @@ function editEquipe(id){
   document.getElementById('meq-area').value=e.area||'';
   document.getElementById('meq-membros').value=e.membros||'';
 }
-function delEquipe(id){if(!confirm('Deletar equipe?'))return;fsDelete('equipes',id);}
+async function delEquipe(id){
+  var ok = await confirmDialog('A equipe será removida permanentemente.', {title:'Deletar equipe?', confirmText:'Deletar'});
+  if(!ok)return;
+  fsDelete('equipes',id);
+  toast('Equipe removida','info');
+}
 
 function renderCategorias(){
   document.getElementById('categorias-body').innerHTML=db.categorias.map(function(c){
@@ -2663,10 +2677,12 @@ function salvarCategoria(){
   fsSave('categorias',{id:genId(),nome:nome,desc:document.getElementById('mcat-desc').value,criada:today()});
   closeModal('modal-categoria');toast('Categoria criada!','success');
 }
-function delCat(id){
+async function delCat(id){
   if(db.produtos.some(function(p){return p.categoria===id;})){toast('Existe produto nessa categoria!','error');return;}
-  if(!confirm('Deletar categoria?'))return;
+  var ok = await confirmDialog('A categoria será removida permanentemente.', {title:'Deletar categoria?', confirmText:'Deletar'});
+  if(!ok)return;
   fsDelete('categorias',id);
+  toast('Categoria removida','info');
 }
 </script>
 <script>
@@ -2716,10 +2732,12 @@ function editUsuario(id){
   document.getElementById('mu-perfil').value=u.perfil;
   document.getElementById('mu-setor').value=u.setor||'';
 }
-function delUsuario(id){
+async function delUsuario(id){
   if(id==='admin_master'){toast('Não é possível deletar o admin principal!','error');return;}
-  if(!confirm('Deletar usuário?'))return;
+  var ok = await confirmDialog('O usuário perderá o acesso ao sistema imediatamente.', {title:'Deletar usuário?', confirmText:'Deletar'});
+  if(!ok)return;
   fsDelete('usuarios',id);
+  toast('Usuário removido','info');
 }
 function alterarSenha(){
   var atual=document.getElementById('ms-atual').value;
@@ -2859,6 +2877,50 @@ function exportCSV(){
 }
 
 function globalSearch(val){if(!val)return;navigate('estoque');setTimeout(function(){filterEstoque(val);},50);}
+
+// Modal de confirmação customizado (substitui o confirm() nativo do navegador)
+// Heurística de Nielsen: Consistência e Padrões + Estética Minimalista
+function confirmDialog(message, options){
+  options = options || {};
+  var title = options.title || 'Confirmar ação';
+  var confirmText = options.confirmText || 'Confirmar';
+  var cancelText = options.cancelText || 'Cancelar';
+  var danger = options.danger !== false; // por padrão, vermelho (ação destrutiva)
+
+  return new Promise(function(resolve){
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease';
+    overlay.innerHTML = [
+      '<div style="background:var(--bg2);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:24px;width:90%;max-width:380px;box-shadow:0 20px 60px rgba(0,0,0,.4)">',
+      '<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">',
+      '<div style="width:38px;height:38px;border-radius:10px;background:'+(danger?'rgba(239,68,68,.15)':'rgba(79,138,255,.15)')+';display:flex;align-items:center;justify-content:center;flex-shrink:0">',
+      '<i class="ti '+(danger?'ti-alert-triangle':'ti-help-circle')+'" style="font-size:20px;color:'+(danger?'var(--red)':'var(--accent)')+'"></i>',
+      '</div>',
+      '<div style="font-size:16px;font-weight:700">'+title+'</div>',
+      '</div>',
+      '<div style="font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:20px">'+message+'</div>',
+      '<div style="display:flex;gap:10px;justify-content:flex-end">',
+      '<button id="cd-cancel" class="btn bg" style="padding:9px 18px">'+cancelText+'</button>',
+      '<button id="cd-confirm" class="btn" style="padding:9px 18px;background:'+(danger?'var(--red)':'var(--accent)')+';color:#fff;border:none">'+confirmText+'</button>',
+      '</div>',
+      '</div>'
+    ].join('');
+    document.body.appendChild(overlay);
+
+    function close(result){
+      overlay.style.opacity='0';
+      overlay.style.transition='opacity .15s';
+      setTimeout(function(){ overlay.remove(); }, 150);
+      resolve(result);
+    }
+    document.getElementById('cd-confirm').onclick = function(){ close(true); };
+    document.getElementById('cd-cancel').onclick = function(){ close(false); };
+    overlay.addEventListener('click', function(e){ if(e.target===overlay) close(false); });
+
+    // Foco automático no botão de confirmar para uso por teclado (acessibilidade)
+    setTimeout(function(){ document.getElementById('cd-confirm').focus(); }, 50);
+  });
+}
 
 function toast(msg,type){
   if(!type)type='info';
