@@ -2083,28 +2083,34 @@ var LOGO_B64 = "'+logo_b64+'";
 
 function getEtiquetaStyle(){
   return [
-    '@page{size:A4 portrait;margin:10mm 14mm}',
+    '@page{size:A4 portrait;margin:10mm 12mm}',
     '*{box-sizing:border-box;margin:0;padding:0}',
-    'body{font-family:Arial,sans-serif;background:#fff;width:182mm}',
-    '.pagina{display:flex;flex-direction:column;gap:3mm;height:calc(297mm - 20mm)}',
-    '.etq{border:1.5px solid #000;background:#fff;display:flex;flex-direction:column;flex:1;break-inside:avoid}',
-    '.etq-top{display:grid;grid-template-columns:1fr 2fr 95px;border-bottom:1.5px solid #000;height:30%}',
-    '.etq-logo-vm{display:flex;align-items:center;justify-content:center;padding:6px 10px;border-right:1.5px solid #000}',
-    '.etq-logo-vm img{max-height:38px;max-width:100%;object-fit:contain}',
-    '.etq-logo-eq{display:flex;align-items:center;justify-content:center;padding:8px 12px;border-right:1.5px solid #000}',
-    '.etq-logo-eq img{max-height:46px;max-width:90%;object-fit:contain}',
-    '.etq-qrbox{display:flex;align-items:center;justify-content:center;padding:5px;background:#fff}',
-    '.etq-qrbox img{width:100%;height:100%;max-width:88px;max-height:88px}',
-    '.etq-cod{text-align:center;font-size:17px;font-weight:400;padding:6px 4px;border-bottom:1.5px solid #000}',
-    '.etq-nome{text-align:center;font-size:13px;font-weight:400;padding:10px 10px;border-bottom:1.5px solid #000;flex:1;display:flex;align-items:center;justify-content:center;line-height:1.3}',
-    '.etq-dex{display:grid;grid-template-columns:90px 1fr;border-bottom:1.5px solid #000;min-height:24px}',
-    '.etq-dex-a{font-size:12px;padding:5px 8px;display:flex;align-items:center;border-right:1.5px solid #000}',
-    '.etq-dex-b{padding:5px 8px;font-size:12px;display:flex;align-items:center;justify-content:center}',
-    '.etq-foot{display:grid;grid-template-columns:75px 1fr 105px;min-height:34px}',
-    '.etq-und{font-size:12px;padding:5px 8px;display:flex;align-items:center;gap:4px;border-right:1.5px solid #000}',
-    '.etq-end{font-size:12px;padding:5px 8px;display:flex;align-items:center;gap:4px;border-right:1.5px solid #000}',
-    '.etq-dep{font-size:11px;padding:5px 8px;line-height:1.7}',
-    '@media print{@page{size:A4 portrait;margin:10mm 14mm}body{width:182mm}.pagina{height:calc(297mm - 20mm)}}'
+    'body{font-family:Calibri,Arial,sans-serif;background:#fff}',
+    '.pagina{display:flex;flex-direction:column;gap:4mm}',
+    // Etiqueta: 170mm largura x 83mm altura (medidas reais da planilha Equatorial)
+    '.etq{width:170mm;height:83mm;border:1.3px solid #000;background:#fff;display:flex;flex-direction:column;break-inside:avoid}',
+    // Topo: logo veman | logo equatorial | qr code -- altura proporcional as linhas 2-6 (~23mm de 83mm = 27.7%)
+    '.etq-top{display:flex;border-bottom:1.3px solid #000;height:23mm;align-items:stretch;overflow:hidden}',
+    '.etq-logo-vm{width:50mm;display:flex;align-items:center;justify-content:center;padding:2mm;border-right:1.3px solid #000}',
+    '.etq-logo-vm img{width:26mm;height:auto;object-fit:contain}',
+    '.etq-logo-eq{flex:1;display:flex;align-items:center;justify-content:center;padding:2mm;border-right:1.3px solid #000}',
+    '.etq-logo-eq img{width:48mm;height:auto;object-fit:contain}',
+    '.etq-qrbox{width:23mm;display:flex;align-items:center;justify-content:center;padding:0.5mm;overflow:hidden}',
+    '.etq-qrbox img{width:21mm;height:21mm;display:block}',
+    // Código: linha 3, fonte 16pt
+    '.etq-cod{text-align:center;font-size:16pt;padding:2mm 2mm;border-bottom:1.3px solid #000;height:9mm;display:flex;align-items:center;justify-content:center}',
+    // Nome material: linhas 5-6, fonte 14pt
+    '.etq-nome{text-align:center;font-size:14pt;padding:2mm 4mm;border-bottom:1.3px solid #000;height:14mm;display:flex;align-items:center;justify-content:center;line-height:1.2}',
+    // DexPara: linhas 7-12, fonte 11pt
+    '.etq-dex{display:flex;border-bottom:1.3px solid #000;height:16mm;align-items:stretch}',
+    '.etq-dex-a{width:38mm;font-size:11pt;padding:2mm;display:flex;align-items:center;border-right:1.3px solid #000}',
+    '.etq-dex-b{flex:1;font-size:11pt;padding:2mm;display:flex;align-items:center;justify-content:center}',
+    // Footer: UND | Endereço | Centro/Deposito - linhas 13-15, fonte 11pt
+    '.etq-foot{display:flex;height:13mm;align-items:stretch}',
+    '.etq-und{width:22mm;font-size:11pt;padding:2mm;display:flex;align-items:center;border-right:1.3px solid #000}',
+    '.etq-end{flex:1;font-size:11pt;padding:2mm;display:flex;align-items:center;border-right:1.3px solid #000}',
+    '.etq-dep{width:36mm;font-size:9pt;padding:2mm;line-height:1.6}',
+    '@media print{@page{size:A4 portrait;margin:10mm 12mm}}'
   ].join(' ');
 }
 
@@ -2113,7 +2119,6 @@ function gerarEtiquetaEquatorial(p, qrSrc){
   var nome = p.nome||'';
   var unidade = p.unidade||'UN';
   var local = p.local||'';
-  // "DexPara" mostra o código com prefixo 2 (padrão visto na planilha original: 2+codigo)
   var dexPara = '2' + cod;
 
   return [
@@ -2207,7 +2212,7 @@ window.selecionarTodasEtq = function(val){
   document.querySelectorAll('#etq-lista input[type=checkbox]').forEach(function(cb){ cb.checked=val; });
 };
 
-window.imprimirEtiquetasSelecionadas = function(){
+window.imprimirEtiquetasSelecionadas = async function(){
   var selecionados = [];
   document.querySelectorAll('#etq-lista input[type=checkbox]:checked').forEach(function(cb){
     var p=null; for(var i=0;i<db.produtos.length;i++) if(db.produtos[i].id===cb.value){p=db.produtos[i];break;}
@@ -2215,24 +2220,150 @@ window.imprimirEtiquetasSelecionadas = function(){
   });
   if(!selecionados.length){ toast('Selecione pelo menos um produto!','error'); return; }
 
-  var css = getEtiquetaStyle();
-  var w = window.open('','_blank');
-  var pages = [];
-  // Agrupar em páginas de 4 (2x2 em landscape)
-  for(var i=0; i<selecionados.length; i+=4){
-    var grupo = selecionados.slice(i, i+4);
-    var etqs = grupo.map(function(p){
-      return gerarEtiquetaEquatorial(p, QRCode.toImgUrl(getProductScanURL(p.id), 300));
-    }).join('');
-    // Preencher com vazios se grupo < 4
-    for(var j=grupo.length; j<4; j++) etqs += '<div class="etq" style="border:none"></div>';
-    pages.push('<div class="pagina">'+etqs+'</div>');
+  document.getElementById('modal-etiquetas').remove();
+  toast('Gerando PDF, aguarde...', 'success');
+
+  if(typeof window.jspdf === 'undefined'){
+    await new Promise(function(resolve, reject){
+      var script = document.createElement('script');
+      script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+      script.onload = resolve;
+      script.onerror = reject;
+      document.head.appendChild(script);
+    });
   }
 
-  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas</title><style>'+css+'</style></head><body>'+pages.join('<div style="page-break-after:always"></div>')+'<scr'+'ipt>window.onload=function(){window.print();}<'+'/scr'+'ipt></body></html>';
-  w.document.write(html);
-  w.document.close();
-  document.getElementById('modal-etiquetas').remove();
+  var jsPDF = window.jspdf.jsPDF;
+  var doc = new jsPDF({unit:'mm', format:'a4'});
+
+  function loadImg(src){
+    return new Promise(function(resolve){
+      var img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = function(){ resolve(img); };
+      img.onerror = function(){ resolve(null); };
+      img.src = src;
+    });
+  }
+
+  var vmLogo = await loadImg('veman_logo.png');
+  var eqLogo = await loadImg('equatorial_logo.png');
+
+  function imgToCanvas(img){
+    if(!img) return null;
+    var c = document.createElement('canvas');
+    c.width = img.naturalWidth; c.height = img.naturalHeight;
+    c.getContext('2d').drawImage(img,0,0);
+    return c.toDataURL('image/png');
+  }
+  var vmDataUrl = imgToCanvas(vmLogo);
+  var eqDataUrl = imgToCanvas(eqLogo);
+
+  // Medidas ajustadas: etiqueta mais estreita, QR maior (desce até linha do código)
+  var ETQ_W = 165, TOP_H = 27, COD_H = 11, NOME_H = 14, DEX_H = 11, FOOT_H = 13;
+  var TOTAL_H = TOP_H+COD_H+NOME_H+DEX_H+FOOT_H;
+  var QR_SIZE = 38;  // bem maior
+  var MARGIN = 10, GAP = 4;
+  var maxPerPage = Math.floor((297 - 2*MARGIN + GAP) / (TOTAL_H + GAP));
+
+  function getQRDataUrl(url, sizeMm){
+    var svg = KQRSVG.toSVG(url, sizeMm*10);
+    return new Promise(function(resolve){
+      var img = new Image();
+      var blob = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+      var burl = URL.createObjectURL(blob);
+      img.onload = function(){
+        var c = document.createElement('canvas');
+        c.width = 600; c.height = 600;
+        var ctx = c.getContext('2d');
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,600,600);
+        ctx.drawImage(img,0,0,600,600);
+        URL.revokeObjectURL(burl);
+        resolve(c.toDataURL('image/png'));
+      };
+      img.src = burl;
+    });
+  }
+
+  function drawEtiqueta(doc, x, y, p, qrDataUrl){
+    doc.setLineWidth(0.45);
+    doc.rect(x, y, ETQ_W, TOTAL_H);
+
+    var vmBoxW = 48, qrBoxW = QR_SIZE, eqBoxW = ETQ_W - vmBoxW - qrBoxW;
+    var yLine1Bottom = y + TOP_H;
+    doc.line(x, yLine1Bottom, x+ETQ_W, yLine1Bottom);
+    doc.line(x+vmBoxW+eqBoxW, y, x+vmBoxW+eqBoxW, yLine1Bottom);
+
+    if(vmDataUrl){
+      var vmW=28, vmH=vmW*(vmLogo.naturalHeight/vmLogo.naturalWidth);
+      if(vmH>TOP_H-4){vmH=TOP_H-4;vmW=vmH*(vmLogo.naturalWidth/vmLogo.naturalHeight);}
+      doc.addImage(vmDataUrl,'PNG', x+vmBoxW/2-vmW/2, y+TOP_H/2-vmH/2, vmW, vmH);
+    }
+    if(eqDataUrl){
+      var eqW=50, eqH=eqW*(eqLogo.naturalHeight/eqLogo.naturalWidth);
+      if(eqH>TOP_H){eqH=TOP_H;eqW=eqH*(eqLogo.naturalWidth/eqLogo.naturalHeight);}
+      doc.addImage(eqDataUrl,'PNG', x+vmBoxW+eqBoxW/2-eqW/2, y+TOP_H/2-eqH/2, eqW, eqH);
+    }
+
+    // Código (linha 2) - linha horizontal só até onde o QR não está
+    var yLine2Bottom = yLine1Bottom + COD_H;
+    doc.line(x, yLine2Bottom, x+vmBoxW+eqBoxW, yLine2Bottom);
+    doc.setFontSize(16);
+    doc.text(p.codigo||'', x+(vmBoxW+eqBoxW)/2, yLine1Bottom+COD_H/2+1.8, {align:'center'});
+
+    // QR Code: atravessa topo + código (igual ao modelo original)
+    if(qrDataUrl){
+      var qrX = x+vmBoxW+eqBoxW+(qrBoxW-QR_SIZE)/2;
+      var qrY = y+((TOP_H+COD_H)-QR_SIZE)/2;
+      doc.addImage(qrDataUrl,'PNG', qrX, qrY, QR_SIZE, QR_SIZE);
+    }
+    doc.line(x+ETQ_W, y, x+ETQ_W, yLine2Bottom);
+    doc.line(x+vmBoxW+eqBoxW, yLine2Bottom, x+ETQ_W, yLine2Bottom);
+
+    // Nome do material
+    var yNomeBottom = yLine2Bottom+NOME_H;
+    doc.line(x, yNomeBottom, x+ETQ_W, yNomeBottom);
+    doc.setFontSize(12);
+    var nomeLines = doc.splitTextToSize(p.nome||'', ETQ_W-8);
+    var lh = 5;
+    var startY = yLine2Bottom+NOME_H/2 - ((nomeLines.length-1)*lh)/2 + 1.5;
+    nomeLines.slice(0,2).forEach(function(line,i){
+      doc.text(line, x+ETQ_W/2, startY+i*lh, {align:'center'});
+    });
+
+    // DexPara - SEM valor inventado, só o label
+    var yDexBottom = yNomeBottom+DEX_H;
+    doc.line(x, yDexBottom, x+ETQ_W, yDexBottom);
+    var dexLabelW = 38;
+    doc.line(x+dexLabelW, yNomeBottom, x+dexLabelW, yDexBottom);
+    doc.setFontSize(11);
+    doc.text('DexPara', x+4, yNomeBottom+DEX_H/2+1.5);
+
+    // Footer
+    var undW=22, depW=36, endW=ETQ_W-undW-depW;
+    var yFootBottom = yDexBottom+FOOT_H;
+    doc.line(x+undW, yDexBottom, x+undW, yFootBottom);
+    doc.line(x+undW+endW, yDexBottom, x+undW+endW, yFootBottom);
+    doc.setFontSize(11);
+    doc.text('UND: '+(p.unidade||'UN'), x+4, yDexBottom+FOOT_H/2+1.5);
+    doc.text('Endereço: '+(p.local||''), x+undW+4, yDexBottom+FOOT_H/2+1.5);
+    doc.setFontSize(9);
+    doc.text('Centro:', x+undW+endW+4, yDexBottom+FOOT_H*0.4);
+    doc.text('Depósito:', x+undW+endW+4, yDexBottom+FOOT_H*0.8);
+  }
+
+  for(var i=0;i<selecionados.length;i++){
+    var p = selecionados[i];
+    var posInPage = i % maxPerPage;
+    if(posInPage===0 && i>0) doc.addPage();
+    var x = MARGIN, y = MARGIN + posInPage*(TOTAL_H+GAP);
+    var qrUrl = getProductScanURL(p.id);
+    var qrDataUrl = await getQRDataUrl(qrUrl, QR_SIZE);
+    drawEtiqueta(doc, x, y, p, qrDataUrl);
+  }
+
+  doc.save('etiquetas-kflow.pdf');
+  toast('PDF gerado com sucesso!', 'success');
 };
 
 function imprimirQR(){
