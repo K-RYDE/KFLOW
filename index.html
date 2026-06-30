@@ -2083,28 +2083,28 @@ var LOGO_B64 = "'+logo_b64+'";
 
 function getEtiquetaStyle(){
   return [
-    '@page{size:A4 portrait;margin:8mm}',
+    '@page{size:A4 portrait;margin:10mm 14mm}',
     '*{box-sizing:border-box;margin:0;padding:0}',
-    'body{font-family:Arial,sans-serif;background:#fff;width:210mm}',
-    '.pagina{display:flex;flex-direction:column;gap:4mm;height:calc(297mm - 16mm)}',
-    '.etq{border:2px solid #222;background:#fff;display:flex;flex-direction:column;flex:1;break-inside:avoid}',
-    '.etq-top{display:grid;grid-template-columns:1fr 1fr 140px;border-bottom:2px solid #222;height:110px}',
-    '.etq-logo{display:flex;align-items:center;justify-content:center;padding:8px}',
-    '.etq-logo img{max-height:95px;max-width:98%;width:auto;height:auto;object-fit:contain}',
-    '.etq-logo-mid{border-left:2px solid #222;border-right:2px solid #222}',
-    '.etq-qrbox{display:flex;align-items:center;justify-content:center;padding:6px;background:#fff}',
-    '.etq-qrbox img{width:126px;height:126px}',
-    '.etq-cod{text-align:center;font-size:18px;font-weight:700;letter-spacing:2px;padding:8px 4px;border-bottom:2px solid #222;background:#f5f5f5}',
-    '.etq-nome{text-align:center;font-size:13px;font-weight:700;padding:10px 8px;border-bottom:2px solid #222;flex:1;display:flex;align-items:center;justify-content:center;line-height:1.4}',
-    '.etq-dex{display:grid;grid-template-columns:140px 1fr;border-bottom:2px solid #222;min-height:28px}',
-    '.etq-dex-a{font-size:12px;font-weight:700;padding:5px 8px;display:flex;align-items:center;border-right:2px solid #222}',
-    '.etq-dex-b{padding:5px 8px;font-size:12px}',
-    '.etq-foot{display:grid;grid-template-columns:110px 1fr 120px;min-height:30px}',
-    '.etq-und{font-size:12px;padding:5px 8px;display:flex;align-items:center;gap:4px;border-right:2px solid #222}',
-    '.etq-end{font-size:12px;padding:5px 8px;display:flex;align-items:center;gap:4px;border-right:2px solid #222}',
-    '.etq-dep{font-size:11px;padding:5px 8px;line-height:1.8}',
-    '.etq-lb{font-weight:700}',
-    '@media print{@page{size:A4 portrait;margin:8mm}body{width:210mm}.pagina{height:calc(297mm - 16mm)}}'
+    'body{font-family:Arial,sans-serif;background:#fff;width:182mm}',
+    '.pagina{display:flex;flex-direction:column;gap:3mm;height:calc(297mm - 20mm)}',
+    '.etq{border:1.5px solid #000;background:#fff;display:flex;flex-direction:column;flex:1;break-inside:avoid}',
+    '.etq-top{display:grid;grid-template-columns:1fr 2fr 95px;border-bottom:1.5px solid #000;height:30%}',
+    '.etq-logo-vm{display:flex;align-items:center;justify-content:center;padding:6px 10px;border-right:1.5px solid #000}',
+    '.etq-logo-vm img{max-height:38px;max-width:100%;object-fit:contain}',
+    '.etq-logo-eq{display:flex;align-items:center;justify-content:center;padding:8px 12px;border-right:1.5px solid #000}',
+    '.etq-logo-eq img{max-height:46px;max-width:90%;object-fit:contain}',
+    '.etq-qrbox{display:flex;align-items:center;justify-content:center;padding:5px;background:#fff}',
+    '.etq-qrbox img{width:100%;height:100%;max-width:88px;max-height:88px}',
+    '.etq-cod{text-align:center;font-size:17px;font-weight:400;padding:6px 4px;border-bottom:1.5px solid #000}',
+    '.etq-nome{text-align:center;font-size:13px;font-weight:400;padding:10px 10px;border-bottom:1.5px solid #000;flex:1;display:flex;align-items:center;justify-content:center;line-height:1.3}',
+    '.etq-dex{display:grid;grid-template-columns:90px 1fr;border-bottom:1.5px solid #000;min-height:24px}',
+    '.etq-dex-a{font-size:12px;padding:5px 8px;display:flex;align-items:center;border-right:1.5px solid #000}',
+    '.etq-dex-b{padding:5px 8px;font-size:12px;display:flex;align-items:center;justify-content:center}',
+    '.etq-foot{display:grid;grid-template-columns:75px 1fr 105px;min-height:34px}',
+    '.etq-und{font-size:12px;padding:5px 8px;display:flex;align-items:center;gap:4px;border-right:1.5px solid #000}',
+    '.etq-end{font-size:12px;padding:5px 8px;display:flex;align-items:center;gap:4px;border-right:1.5px solid #000}',
+    '.etq-dep{font-size:11px;padding:5px 8px;line-height:1.7}',
+    '@media print{@page{size:A4 portrait;margin:10mm 14mm}body{width:182mm}.pagina{height:calc(297mm - 20mm)}}'
   ].join(' ');
 }
 
@@ -2113,32 +2113,31 @@ function gerarEtiquetaEquatorial(p, qrSrc){
   var nome = p.nome||'';
   var unidade = p.unidade||'UN';
   var local = p.local||'';
-
-  // Usar URLs absolutas das logos (github raw ou CDN)
-  var vmUrl = 'https://raw.githubusercontent.com/K-RYDE/KFLOW/main/veman_logo.png';
-  var eqUrl = 'https://raw.githubusercontent.com/K-RYDE/KFLOW/main/equatorial_logo.png';
+  // "DexPara" mostra o código com prefixo 2 (padrão visto na planilha original: 2+codigo)
+  var dexPara = '2' + cod;
 
   return [
     '<div class="etq">',
     '  <div class="etq-top">',
-    '    <div class="etq-logo"><img src="'+vmUrl+'" onerror="this.style.display=\'none\'" alt="Veman"></div>',
-    '    <div class="etq-logo etq-logo-mid"><img src="'+eqUrl+'" onerror="this.style.display=\'none\'" alt="Equatorial"></div>',
+    '    <div class="etq-logo-vm"><img src="veman_logo.png" alt="Veman"></div>',
+    '    <div class="etq-logo-eq"><img src="equatorial_logo.png" alt="Equatorial"></div>',
     '    <div class="etq-qrbox"><img src="'+qrSrc+'" alt="QR"></div>',
     '  </div>',
     '  <div class="etq-cod">'+cod+'</div>',
     '  <div class="etq-nome">'+nome+'</div>',
     '  <div class="etq-dex">',
     '    <div class="etq-dex-a">DexPara</div>',
-    '    <div class="etq-dex-b"></div>',
+    '    <div class="etq-dex-b">'+dexPara+'</div>',
     '  </div>',
     '  <div class="etq-foot">',
-    '    <div class="etq-und"><span class="etq-lb">UND:</span>&nbsp;'+unidade+'</div>',
-    '    <div class="etq-end"><span class="etq-lb">Endereço:</span>&nbsp;'+local+'</div>',
-    '    <div class="etq-dep"><span class="etq-lb">Centro:</span><br><span class="etq-lb">Depósito:</span></div>',
+    '    <div class="etq-und">UND: '+unidade+'</div>',
+    '    <div class="etq-end">Endereço: '+local+'</div>',
+    '    <div class="etq-dep">Centro:<br>Depósito:</div>',
     '  </div>',
     '</div>'
   ].join('');
 }
+
 
 // Modal de seleção de etiquetas para impressão
 window._etiquetasSelecionadas = [];
@@ -2223,7 +2222,7 @@ window.imprimirEtiquetasSelecionadas = function(){
   for(var i=0; i<selecionados.length; i+=4){
     var grupo = selecionados.slice(i, i+4);
     var etqs = grupo.map(function(p){
-      return gerarEtiquetaEquatorial(p, QRCode.toImgUrl(getProductScanURL(p.id), 260));
+      return gerarEtiquetaEquatorial(p, QRCode.toImgUrl(getProductScanURL(p.id), 300));
     }).join('');
     // Preencher com vazios se grupo < 4
     for(var j=grupo.length; j<4; j++) etqs += '<div class="etq" style="border:none"></div>';
