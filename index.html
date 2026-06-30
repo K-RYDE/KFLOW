@@ -2088,12 +2088,12 @@ function getEtiquetaStyle(){
     'body{font-family:Arial,sans-serif;background:#fff;width:210mm}',
     '.pagina{display:flex;flex-direction:column;gap:4mm;height:calc(297mm - 16mm)}',
     '.etq{border:2px solid #222;background:#fff;display:flex;flex-direction:column;flex:1;break-inside:avoid}',
-    '.etq-top{display:grid;grid-template-columns:1fr 1fr 110px;border-bottom:2px solid #222;height:70px}',
-    '.etq-logo{display:flex;align-items:center;justify-content:center;padding:6px}',
-    '.etq-logo img{max-height:58px;max-width:100%;object-fit:contain}',
+    '.etq-top{display:grid;grid-template-columns:1fr 1fr 140px;border-bottom:2px solid #222;height:110px}',
+    '.etq-logo{display:flex;align-items:center;justify-content:center;padding:8px}',
+    '.etq-logo img{max-height:95px;max-width:98%;width:auto;height:auto;object-fit:contain}',
     '.etq-logo-mid{border-left:2px solid #222;border-right:2px solid #222}',
-    '.etq-qrbox{display:flex;align-items:center;justify-content:center;padding:4px;background:#fff}',
-    '.etq-qrbox img{width:96px;height:96px}',
+    '.etq-qrbox{display:flex;align-items:center;justify-content:center;padding:6px;background:#fff}',
+    '.etq-qrbox img{width:126px;height:126px}',
     '.etq-cod{text-align:center;font-size:18px;font-weight:700;letter-spacing:2px;padding:8px 4px;border-bottom:2px solid #222;background:#f5f5f5}',
     '.etq-nome{text-align:center;font-size:13px;font-weight:700;padding:10px 8px;border-bottom:2px solid #222;flex:1;display:flex;align-items:center;justify-content:center;line-height:1.4}',
     '.etq-dex{display:grid;grid-template-columns:140px 1fr;border-bottom:2px solid #222;min-height:28px}',
@@ -2223,7 +2223,7 @@ window.imprimirEtiquetasSelecionadas = function(){
   for(var i=0; i<selecionados.length; i+=4){
     var grupo = selecionados.slice(i, i+4);
     var etqs = grupo.map(function(p){
-      return gerarEtiquetaEquatorial(p, QRCode.toImgUrl(getProductScanURL(p.id), 200));
+      return gerarEtiquetaEquatorial(p, QRCode.toImgUrl(getProductScanURL(p.id), 260));
     }).join('');
     // Preencher com vazios se grupo < 4
     for(var j=grupo.length; j<4; j++) etqs += '<div class="etq" style="border:none"></div>';
