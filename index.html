@@ -1596,6 +1596,7 @@ textarea { resize: vertical; min-height: 80px }
     <div class="ni" role="button" tabindex="0" onclick="navigate('qrcodes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('qrcodes')"><i class="ti ti-qrcode" aria-hidden="true"></i> QR Codes</div>
     <div class="ns">Gestão</div>
     <div class="ni" role="button" tabindex="0" onclick="navigate('projetos')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('projetos')"><i class="ti ti-folders" aria-hidden="true"></i> Projetos</div>
+    <div class="ni" role="button" tabindex="0" onclick="navigate('reservas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('reservas')"><i class="ti ti-database" aria-hidden="true"></i> Reservas SAP</div>
     <div class="ni" role="button" tabindex="0" onclick="navigate('equipes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('equipes')"><i class="ti ti-users" aria-hidden="true"></i> Equipes</div>
     <div class="ni" role="button" tabindex="0" onclick="navigate('categorias')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('categorias')"><i class="ti ti-tags" aria-hidden="true"></i> Categorias</div>
     <div class="ns" id="nav-admin-section">Admin</div>
@@ -1681,8 +1682,13 @@ textarea { resize: vertical; min-height: 80px }
     </div>
 
     <div class="page" id="page-projetos">
-      <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div>
+      <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="reconstruirProjetosDeHistorico()"><i class="ti ti-refresh"></i> Reconstruir do histórico</button><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div></div>
       <div id="projetos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
+    </div>
+
+    <div class="page" id="page-reservas">
+      <div class="ph"><div><div class="pt">Reservas SAP</div><div class="ps">Reserva extraída do SAP por serviço → PEP → nº de reserva. Usada para comparar com as saídas do KFLOW.</div></div><button class="btn bp" onclick="openModal('modal-reserva')"><i class="ti ti-plus"></i> Nova Reserva</button></div>
+      <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Nº Serviço</th><th>PEP</th><th>Nº Reserva</th><th>Produto</th><th>Qtd. Reservada</th><th></th></tr></thead><tbody id="reservas-body"></tbody></table></div></div></div>
     </div>
 
     <div class="page" id="page-equipes">
@@ -1778,7 +1784,8 @@ textarea { resize: vertical; min-height: 80px }
       <div class="fg"><label>Fornecedor / Origem</label><input type="text" id="ent-forn" placeholder="Nome do fornecedor"></div>
       <div class="fg"><label>Responsável</label><input type="text" id="ent-resp" placeholder="Quem recebeu"></div>
     </div>
-    <div class="fg"><label>Tipo</label><select id="ent-tipo"><option value="Compra">Compra</option><option value="Transferência">Transferência</option><option value="Devolução">Devolução</option><option value="Ajuste">Ajuste de Inventário</option></select></div>
+    <div class="fg"><label>Tipo</label><select id="ent-tipo" onchange="toggleEntProj()"><option value="Compra">Compra</option><option value="Transferência">Transferência</option><option value="Devolução">Devolução</option><option value="Ajuste">Ajuste de Inventário</option></select></div>
+    <div class="fg hidden" id="ent-proj-group"><label>Nº / Nome do Projeto (devolução) *</label><input type="text" id="ent-proj-txt" placeholder="Ex: EQ-12345 — mesmo nº usado na saída" list="ent-proj-list"><datalist id="ent-proj-list"></datalist></div>
     <div class="fg"><label>Observações</label><textarea id="ent-obs" placeholder="..."></textarea></div>
   </div>
   <div class="mf">
@@ -1841,6 +1848,40 @@ textarea { resize: vertical; min-height: 80px }
   <div class="mf">
     <button class="btn bg" onclick="closeModal('modal-projeto')">Cancelar</button>
     <button class="btn bp" onclick="salvarProjeto()"><i class="ti ti-check"></i> Salvar</button>
+  </div>
+</div>
+</div>
+
+<div class="mo" id="modal-reserva">
+<div class="modal">
+  <div class="mh"><span class="mt" id="mres-title">Nova Reserva SAP</span><button class="xb" onclick="closeModal('modal-reserva')">&times;</button></div>
+  <div class="mb">
+    <input type="hidden" id="mres-id">
+    <div class="fr">
+      <div class="fg"><label>Nº Serviço *</label><input type="text" id="mres-servico" placeholder="Ex: EQ-12345 (mesmo nº do projeto)"></div>
+      <div class="fg"><label>PEP</label><input type="text" id="mres-pep" placeholder="Ex: E.10.20"></div>
+    </div>
+    <div class="fr">
+      <div class="fg"><label>Nº Reserva</label><input type="text" id="mres-reserva" placeholder="Ex: 0000891234"></div>
+      <div class="fg"><label>Qtd. Reservada *</label><input type="number" id="mres-qtd" min="0" placeholder="0"></div>
+    </div>
+    <div class="fg"><label>Produto *</label><select id="mres-prod"><option value="">Selecione...</option></select></div>
+  </div>
+  <div class="mf">
+    <button class="btn bg" onclick="closeModal('modal-reserva')">Cancelar</button>
+    <button class="btn bp" onclick="salvarReserva()"><i class="ti ti-check"></i> Salvar</button>
+  </div>
+</div>
+</div>
+
+<div class="mo" id="modal-projeto-detalhe">
+<div class="modal" style="max-width:780px">
+  <div class="mh"><span class="mt" id="mpd-title">Saídas do Projeto</span><button class="xb" onclick="closeModal('modal-projeto-detalhe')">&times;</button></div>
+  <div class="mb">
+    <div class="tw"><table><thead><tr><th>Data</th><th>Material</th><th>Qtd.</th><th>Equipe</th><th>Tipo</th><th>Responsável</th><th>Status SAP</th></tr></thead><tbody id="pd-saidas-body"></tbody></table></div>
+  </div>
+  <div class="mf">
+    <button class="btn bg" onclick="closeModal('modal-projeto-detalhe')">Fechar</button>
   </div>
 </div>
 </div>
@@ -1952,11 +1993,11 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var dbf = firebase.firestore();
 
-var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[]};
+var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[],reservas:[]};
 var currentUser=null;
 var importData=[];
 var selectedTipo='';
-var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios'];
+var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios','reservas'];
 var unsubs=[];
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
@@ -1972,7 +2013,7 @@ function setSyncStatus(ok){
 
 // Carrega tudo do Firestore e mantem em tempo real
 function initFirestoreSync(callback){
-  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false};
+  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false,reservas:false};
   function checkAllLoaded(){
     if(Object.values(loaded).every(function(v){return v;})){
       callback();
@@ -1986,7 +2027,7 @@ function initFirestoreSync(callback){
       setSyncStatus(true);
       loaded[col]=true;
       checkAllLoaded();
-      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&window._appStarted){
+      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&loaded.reservas&&window._appStarted){
         if(typeof renderPage==='function')renderPage(currentPage);
       }
     },function(err){
@@ -2131,6 +2172,7 @@ var pageCfg={
   saida:{title:'Saídas',action:'Registrar Saída',actionFn:function(){openModal('modal-saida');}},
   qrcodes:{title:'QR Codes',action:null},
   projetos:{title:'Projetos',action:'Novo Projeto',actionFn:function(){openModal('modal-projeto');}},
+  reservas:{title:'Reservas SAP',action:'Nova Reserva',actionFn:function(){openModal('modal-reserva');}},
   equipes:{title:'Equipes',action:'Nova Equipe',actionFn:function(){openModal('modal-equipe');}},
   categorias:{title:'Categorias',action:'Nova Categoria',actionFn:function(){openModal('modal-categoria');}},
   usuarios:{title:'Usuários',action:'Novo Usuário',actionFn:function(){openModal('modal-usuario');}},
@@ -2166,6 +2208,7 @@ function renderPage(page){
   else if(page==='saida')renderSaidas();
   else if(page==='qrcodes')renderQRGrid();
   else if(page==='projetos')renderProjetos();
+  else if(page==='reservas')renderReservas();
   else if(page==='equipes')renderEquipes();
   else if(page==='categorias')renderCategorias();
   else if(page==='usuarios')renderUsuarios();
@@ -2648,11 +2691,17 @@ function salvarEntrada(){
   var pid=document.getElementById('ent-prod').value;
   var qty=parseInt(document.getElementById('ent-qty').value)||0;
   var data=document.getElementById('ent-data').value;
+  var tipo=document.getElementById('ent-tipo').value;
+  var projTxt=document.getElementById('ent-proj-txt').value.trim();
   if(!pid||qty<=0||!data){toast('Preencha produto, quantidade e data!','error');return;}
+  if(tipo==='Devolução'&&!projTxt){toast('Informe o nº/nome do projeto da devolução!','error');return;}
   var p=gP(pid);if(!p)return;
   var novaQty=p.qty+qty;
   fsUpdate('produtos',pid,{qty:novaQty});
-  fsSave('entradas',{id:genId(),produto:pid,qty:qty,data:data,forn:document.getElementById('ent-forn').value,resp:document.getElementById('ent-resp').value,tipoMov:document.getElementById('ent-tipo').value,obs:document.getElementById('ent-obs').value});
+  fsSave('entradas',{id:genId(),produto:pid,qty:qty,data:data,forn:document.getElementById('ent-forn').value,resp:document.getElementById('ent-resp').value,tipoMov:tipo,projetoTxt:tipo==='Devolução'?projTxt:'',obs:document.getElementById('ent-obs').value});
+  if(tipo==='Devolução'&&projTxt){
+    registrarProjetoAutomatico(projTxt, '', document.getElementById('ent-resp').value, [{nome:p.nome,qty:qty}], data);
+  }
   closeModal('modal-entrada');toast('Entrada de '+qty+' '+p.unidade+' registrada!','success');
 }
 
@@ -2725,12 +2774,20 @@ function openRepor(id){
 }
 
 function fillProjDatalist(){
-  var dl=document.getElementById('sai-proj-list');
-  if(!dl)return;
   var uniq={};
   db.saidas.forEach(function(s){if(s.projetoTxt)uniq[s.projetoTxt]=true;});
   db.projetos.forEach(function(p){uniq[p.nome+(p.num?' ('+p.num+')':'')]=true;});
-  dl.innerHTML=Object.keys(uniq).map(function(t){return'<option value="'+t+'">';}).join('');
+  var opts=Object.keys(uniq).map(function(t){return'<option value="'+t+'">';}).join('');
+  ['sai-proj-list','ent-proj-list'].forEach(function(id){
+    var dl=document.getElementById(id);
+    if(dl)dl.innerHTML=opts;
+  });
+}
+function toggleEntProj(){
+  var tipo=document.getElementById('ent-tipo').value;
+  var g=document.getElementById('ent-proj-group');
+  if(!g)return;
+  g.classList.toggle('hidden', tipo!=='Devolução');
 }
 </script>
 <script>
@@ -2787,8 +2844,138 @@ function renderProjetos(){
   var statLbl={ativo:'Ativo',pausado:'Pausado',concluido:'Concluído'};
   grid.innerHTML=db.projetos.map(function(p){
     var s=db.saidas.filter(function(x){return x.projetoTxt===p.nome||(p.num&&x.projetoTxt&&x.projetoTxt.indexOf(p.num)>=0);});
-    return'<div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div><div style="font-weight:700;font-size:15px;margin-bottom:2px">'+p.nome+'</div><div style="font-size:11px;color:var(--text3)">'+(p.codigo||'')+' '+(p.num?'&bull; '+p.num:'')+'</div></div><span class="badge '+(statMap[p.status]||'bb')+'">'+(statLbl[p.status]||p.status)+'</span></div><div style="font-size:13px;color:var(--text2);margin-bottom:14px;min-height:32px">'+(p.desc||'Sem descrição')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent)">'+s.length+'</div><div style="font-size:11px;color:var(--text3)">Retiradas</div></div><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--teal)">'+s.reduce(function(a,b){return a+b.qty;},0)+'</div><div style="font-size:11px;color:var(--text3)">Itens</div></div></div>'+(canEdit()?'<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn bg bsm" onclick="editProjeto(\''+p.id+'\')"><i class="ti ti-edit"></i> Editar</button><button class="btn bg bsm" style="color:var(--red)" onclick="delProjeto(\''+p.id+'\')"><i class="ti ti-trash"></i></button></div>':'')+'</div>';
+    return'<div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div><div style="font-weight:700;font-size:15px;margin-bottom:2px">'+p.nome+'</div><div style="font-size:11px;color:var(--text3)">'+(p.codigo||'')+' '+(p.num?'&bull; '+p.num:'')+'</div></div><span class="badge '+(statMap[p.status]||'bb')+'">'+(statLbl[p.status]||p.status)+'</span></div><div style="font-size:13px;color:var(--text2);margin-bottom:14px;min-height:32px">'+(p.desc||'Sem descrição')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent)">'+s.length+'</div><div style="font-size:11px;color:var(--text3)">Retiradas</div></div><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--teal)">'+s.reduce(function(a,b){return a+b.qty;},0)+'</div><div style="font-size:11px;color:var(--text3)">Itens</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn bg bsm" onclick="abrirDetalheProjeto(\''+p.id+'\')"><i class="ti ti-list-details"></i> Ver saídas</button>'+(canEdit()?'<button class="btn bg bsm" onclick="editProjeto(\''+p.id+'\')"><i class="ti ti-edit"></i> Editar</button><button class="btn bg bsm" style="color:var(--red)" onclick="delProjeto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></div>';
   }).join('');
+}
+
+// ===================== RESERVAS SAP =====================
+function renderReservas(){
+  var tb=document.getElementById('reservas-body');
+  if(!tb)return;
+  if(!db.reservas.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">Nenhuma reserva cadastrada ainda. Extraia do SAP (CJ20N &rarr; PEP &rarr; CO09/CN60) e cadastre aqui.</td></tr>';return;}
+  tb.innerHTML=db.reservas.map(function(r){
+    var p=gP(r.produto);
+    return'<tr><td>'+(r.servico||'-')+'</td><td>'+(r.pep||'-')+'</td><td>'+(r.reserva||'-')+'</td><td>'+(p?p.nome:'[Produto removido]')+'</td><td style="font-weight:700">'+r.qtd+' '+(p?p.unidade:'')+'</td><td>'+(canEdit()?'<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bg bsm" onclick="editReserva(\''+r.id+'\')"><i class="ti ti-edit"></i></button><button class="btn bg bsm" style="color:var(--red)" onclick="delReserva(\''+r.id+'\')"><i class="ti ti-trash"></i></button></div>':'')+'</td></tr>';
+  }).join('');
+}
+function salvarReserva(){
+  var servico=document.getElementById('mres-servico').value.trim();
+  var prod=document.getElementById('mres-prod').value;
+  var qtd=Number(document.getElementById('mres-qtd').value);
+  if(!servico||!prod){toast('Informe nº de serviço e produto!','error');return;}
+  var id=document.getElementById('mres-id').value;
+  var data={servico:servico,pep:document.getElementById('mres-pep').value.trim(),reserva:document.getElementById('mres-reserva').value.trim(),produto:prod,qtd:qtd||0};
+  if(id){fsUpdate('reservas',id,data);toast('Reserva atualizada!','success');}
+  else{fsSave('reservas',Object.assign({id:genId()},data));toast('Reserva cadastrada!','success');}
+  closeModal('modal-reserva');
+}
+function editReserva(id){
+  var r=null;for(var i=0;i<db.reservas.length;i++)if(db.reservas[i].id===id){r=db.reservas[i];break;}
+  if(!r)return;
+  openModal('modal-reserva');
+  document.getElementById('mres-title').textContent='Editar Reserva';
+  document.getElementById('mres-id').value=r.id;
+  document.getElementById('mres-servico').value=r.servico||'';
+  document.getElementById('mres-pep').value=r.pep||'';
+  document.getElementById('mres-reserva').value=r.reserva||'';
+  document.getElementById('mres-qtd').value=r.qtd||0;
+  document.getElementById('mres-prod').value=r.produto||'';
+}
+async function delReserva(id){
+  var ok = await confirmDialog('A reserva será removida permanentemente.', {title:'Deletar reserva?', confirmText:'Deletar'});
+  if(!ok)return;
+  fsDelete('reservas',id);
+  toast('Reserva removida','info');
+}
+
+// Compara a reserva SAP de um nº de serviço com as saídas e devoluções do KFLOW daquele mesmo
+// serviço, processando em ordem cronológica (saída consome, devolução devolve — nunca mais do
+// que já foi consumido). Retorna um mapa { "saida:ID": {...} } e { "devolucao:ID": {...} }.
+function calcStatusSap(servicoTxt){
+  var chave=(servicoTxt||'').trim().toLowerCase();
+  var saldo={}, temReserva={}, totalConsumido={}, totalDevolvido={};
+  db.reservas.forEach(function(r){
+    if((r.servico||'').trim().toLowerCase()!==chave)return;
+    saldo[r.produto]=(saldo[r.produto]||0)+(Number(r.qtd)||0);
+    temReserva[r.produto]=true;
+  });
+  var movs=[];
+  db.saidas.forEach(function(s){
+    if((s.projetoTxt||'').trim().toLowerCase()===chave)movs.push({tipo:'saida',id:s.id,produto:s.produto,qty:s.qty,data:s.data});
+  });
+  db.entradas.forEach(function(e){
+    if(e.tipoMov==='Devolução'&&(e.projetoTxt||'').trim().toLowerCase()===chave)movs.push({tipo:'devolucao',id:e.id,produto:e.produto,qty:e.qty,data:e.data});
+  });
+  movs.sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+  var result={};
+  movs.forEach(function(m){
+    var key=m.tipo+':'+m.id;
+    var pid=m.produto, qtd=m.qty||0;
+    if(!temReserva[pid]){result[key]={status:'naoenc',text:'Reserva não encontrada',icon:'ti-help-octagon',color:'var(--red)'};return;}
+    totalConsumido[pid]=totalConsumido[pid]||0; totalDevolvido[pid]=totalDevolvido[pid]||0;
+    if(m.tipo==='saida'){
+      var disp=saldo[pid]||0;
+      if(disp<=0){result[key]={status:'adicionar',text:'Adicionar '+qtd,icon:'ti-plus',color:'var(--amber)'};}
+      else if(disp>=qtd){result[key]={status:'consumir',text:'Consumir '+qtd,icon:'ti-check',color:'var(--teal)'};saldo[pid]=disp-qtd;totalConsumido[pid]+=qtd;}
+      else{var falta=qtd-disp;result[key]={status:'parcial',text:'Consumir '+disp+' + Adicionar '+falta,icon:'ti-arrows-split',color:'var(--purple)'};totalConsumido[pid]+=disp;saldo[pid]=0;}
+    } else {
+      var disponivelDevolver=(totalConsumido[pid]||0)-(totalDevolvido[pid]||0);
+      if(disponivelDevolver<=0){
+        result[key]={status:'alerta',text:'Sem consumo correspondente p/ devolver',icon:'ti-alert-triangle',color:'var(--red)'};
+      } else if(qtd<=disponivelDevolver){
+        result[key]={status:'devolver',text:'Devolver '+qtd+' ao estoque',icon:'ti-corner-up-left',color:'var(--accent)'};
+        saldo[pid]=(saldo[pid]||0)+qtd; totalDevolvido[pid]+=qtd;
+      } else {
+        var excedente=qtd-disponivelDevolver;
+        result[key]={status:'alerta',text:'Devolver '+disponivelDevolver+' · excedente '+excedente+' sem consumo',icon:'ti-alert-triangle',color:'var(--red)'};
+        saldo[pid]=(saldo[pid]||0)+disponivelDevolver; totalDevolvido[pid]+=disponivelDevolver;
+      }
+    }
+  });
+  return result;
+}
+// Junta o resultado de calcStatusSap para uma lista de movimentos (saída/devolução) que pode
+// ter mais de um texto de projeto associado
+function calcStatusParaLista(movsArr){
+  var uniq={};
+  movsArr.forEach(function(m){uniq[(m.projetoTxt||'').trim().toLowerCase()]=true;});
+  var result={};
+  Object.keys(uniq).forEach(function(k){
+    if(!k)return;
+    var original=movsArr.filter(function(m){return (m.projetoTxt||'').trim().toLowerCase()===k;})[0].projetoTxt;
+    Object.assign(result,calcStatusSap(original));
+  });
+  return result;
+}
+function pillSap(st){
+  if(!st)return'<span class="badge bb" title="Sem reserva SAP cadastrada para este serviço">Sem dado SAP</span>';
+  return'<span class="badge" style="background:'+st.color+'22;color:'+st.color+';border:1px solid '+st.color+'55;display:inline-flex;align-items:center;gap:5px"><i class="ti '+st.icon+'"></i>'+st.text+'</span>';
+}
+
+// ===================== DETALHE DO PROJETO (todas as saídas e devoluções) =====================
+function abrirDetalheProjeto(id){
+  var p=null;for(var i=0;i<db.projetos.length;i++)if(db.projetos[i].id===id){p=db.projetos[i];break;}
+  if(!p)return;
+  var matchProj=function(txt){return txt===p.nome||(p.num&&txt&&txt.indexOf(p.num)>=0);};
+  var saidasP=db.saidas.filter(function(x){return matchProj(x.projetoTxt);}).map(function(x){return Object.assign({movTipo:'saida'},x);});
+  var devP=db.entradas.filter(function(x){return x.tipoMov==='Devolução'&&matchProj(x.projetoTxt);}).map(function(x){return Object.assign({movTipo:'devolucao'},x);});
+  var todos=saidasP.concat(devP);
+  todos.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+  document.getElementById('mpd-title').textContent='Movimentações — '+p.nome+(p.num?' ('+p.num+')':'');
+  var statusMap=calcStatusParaLista(todos);
+  var tb=document.getElementById('pd-saidas-body');
+  if(!todos.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text3)">Nenhuma saída ou devolução registrada para este projeto ainda.</td></tr>';}
+  else{
+    tb.innerHTML=todos.map(function(x){
+      var prod=gP(x.produto); var eq=x.movTipo==='saida'?gEq(x.equipe):null;
+      var isDev=x.movTipo==='devolucao';
+      var tipoCol=isDev?'<span class="badge bs">Devolução</span>':tipoBadge(x.tipoServ);
+      var qtyCol='<strong style="color:'+(isDev?'var(--green)':'var(--red)')+'">'+(isDev?'+':'-')+x.qty+'</strong> '+(prod?prod.unidade:'');
+      var statusKey=x.movTipo+':'+x.id;
+      return'<tr><td>'+fmtDate(x.data)+'</td><td>'+(prod?prod.nome:'[Removido]')+'</td><td>'+qtyCol+'</td><td>'+(eq?eq.nome:'-')+'</td><td>'+tipoCol+'</td><td>'+(x.resp||'-')+'</td><td>'+pillSap(statusMap[statusKey])+'</td></tr>';
+    }).join('');
+  }
+  openModal('modal-projeto-detalhe');
 }
 function salvarProjeto(){
   var nome=document.getElementById('mproj-nome').value.trim();if(!nome){toast('Informe o nome!','error');return;}
@@ -3040,18 +3227,20 @@ function fillEqSelect(id){
 }
 
 function openModal(id){
-  fillCatSelect('mp-cat');fillProdSelect('ent-prod');fillProdSelect('sai-prod');
+  fillCatSelect('mp-cat');fillProdSelect('ent-prod');fillProdSelect('sai-prod');fillProdSelect('mres-prod');
   fillEqSelect('sai-eq');fillProjDatalist();
   var m=document.getElementById(id);if(!m)return;
   m.querySelectorAll('input:not([type=hidden]),textarea').forEach(function(el){el.value='';});
   m.querySelectorAll('select').forEach(function(el){el.selectedIndex=0;});
   m.querySelectorAll('input[type=date]').forEach(function(el){el.value=today();});
-  ['mp-id','mproj-id','meq-id','mu-id'].forEach(function(hid){var el=document.getElementById(hid);if(el)el.value='';});
+  ['mp-id','mproj-id','meq-id','mu-id','mres-id'].forEach(function(hid){var el=document.getElementById(hid);if(el)el.value='';});
   selectedTipo='';document.querySelectorAll('.ro').forEach(function(r){r.classList.remove('sel');});
   if(id==='modal-produto'){document.getElementById('mp-title').textContent='Novo Produto';fillCatSelect('mp-cat');}
   if(id==='modal-projeto')document.getElementById('mproj-title').textContent='Novo Projeto';
   if(id==='modal-equipe')document.getElementById('meq-title').textContent='Nova Equipe';
   if(id==='modal-usuario'){document.getElementById('mu-title').textContent='Novo Usuário';document.getElementById('mu-pass').placeholder='Mínimo 6 caracteres';}
+  if(id==='modal-reserva')document.getElementById('mres-title').textContent='Nova Reserva SAP';
+  if(id==='modal-entrada')toggleEntProj();
   m.classList.add('open');
 }
 function closeModal(id){var m=document.getElementById(id);if(m)m.classList.remove('open');}
@@ -3696,6 +3885,48 @@ window.removerItem = function(idx){
 
 
 // Registrar projeto automaticamente ao finalizar saída via scan ou manual
+async function reconstruirProjetosDeHistorico(){
+  var ok = await confirmDialog('Isso vai procurar saídas/devoluções cujo texto de projeto não tem um projeto cadastrado correspondente, e criar esses projetos automaticamente. Não apaga nem altera nada existente.', {title:'Reconstruir projetos do histórico?', confirmText:'Reconstruir'});
+  if(!ok)return;
+
+  function jaExiste(txt){
+    for(var i=0;i<db.projetos.length;i++){
+      var p=db.projetos[i];
+      if((p.nome&&p.nome.trim().toLowerCase()===txt.trim().toLowerCase())||(p.num&&p.num.trim().toLowerCase()===txt.trim().toLowerCase()))return true;
+    }
+    return false;
+  }
+
+  var datasPorTxt={};
+  function registrarData(txt,dt){
+    if(!txt)return;
+    var k=txt.trim();
+    if(!datasPorTxt[k])datasPorTxt[k]={ini:dt,fim:dt};
+    else{
+      if(dt&&(!datasPorTxt[k].ini||dt<datasPorTxt[k].ini))datasPorTxt[k].ini=dt;
+      if(dt&&(!datasPorTxt[k].fim||dt>datasPorTxt[k].fim))datasPorTxt[k].fim=dt;
+    }
+  }
+  db.saidas.forEach(function(s){registrarData(s.projetoTxt,s.data);});
+  db.entradas.forEach(function(e){if(e.tipoMov==='Devolução')registrarData(e.projetoTxt,e.data);});
+
+  var faltando=Object.keys(datasPorTxt).filter(function(txt){return txt&&!jaExiste(txt);});
+  if(!faltando.length){toast('Nenhum projeto faltando — tudo já está cadastrado!','info');return;}
+
+  var promises=faltando.map(function(txt){
+    return fsSave('projetos',{
+      id:genId(), nome:txt, num:txt, status:'ativo',
+      inicio:datasPorTxt[txt].ini||today(),
+      desc:'Projeto reconstruído automaticamente a partir do histórico de saídas',
+      ultimaMovimento:datasPorTxt[txt].fim||today(),
+      criadoAuto:true
+    });
+  });
+  Promise.all(promises).then(function(){
+    toast(faltando.length+' projeto(s) reconstruído(s) a partir do histórico!','success');
+  });
+}
+
 function registrarProjetoAutomatico(projetoTxt, equipeId, resp, itensSaida, dt){
   if(!projetoTxt) return;
 
