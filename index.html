@@ -1298,6 +1298,21 @@ w.QRCode={toCanvas:function(canvas,url,opts,cb){if(typeof opts==='function'){cb=
   --shadow-md: 0 4px 20px rgba(0,0,0,.5), 0 2px 6px rgba(0,0,0,.35);
   --shadow-lg: 0 16px 48px rgba(0,0,0,.6), 0 4px 14px rgba(0,0,0,.4);
 }
+:root[data-theme="light"] {
+  --bg:      #f4f5f7;
+  --bg2:     #ffffff;
+  --bg3:     #eef0f3;
+  --bg4:     #e4e7eb;
+  --border:  rgba(15,15,20,.08);
+  --border2: rgba(15,15,20,.14);
+  --border3: rgba(15,15,20,.22);
+  --text:    #18181b;
+  --text2:   #52525b;
+  --text3:   #8b8b93;
+  --shadow: 0 1px 3px rgba(15,15,20,.10), 0 1px 2px rgba(15,15,20,.08);
+  --shadow-md: 0 4px 20px rgba(15,15,20,.10), 0 2px 6px rgba(15,15,20,.08);
+  --shadow-lg: 0 16px 48px rgba(15,15,20,.14), 0 4px 14px rgba(15,15,20,.10);
+}
 
 /* ─── Reset & base ──────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0 }
@@ -1529,6 +1544,14 @@ textarea { resize: vertical; min-height: 80px }
 
 /* ─── Mobile nav ────────────────────────────────────────────────── */
 .mobile-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border); z-index: 200; padding: 6px 0 env(safe-area-inset-bottom,6px) }
+.mobile-more-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:299 }
+.mobile-more-backdrop.open { display:block }
+.mobile-more-panel { display:none; position:fixed; left:0; right:0; bottom:0; background:var(--bg2); border-top:1px solid var(--border); border-radius:16px 16px 0 0; z-index:300; padding:10px 8px calc(env(safe-area-inset-bottom,10px) + 76px); max-height:60vh; overflow-y:auto }
+.mobile-more-panel.open { display:block }
+.mmp-item { display:flex; align-items:center; gap:12px; padding:14px 16px; font-size:15px; font-weight:500; color:var(--text); border-radius:10px; cursor:pointer }
+.mmp-item i { font-size:20px; color:var(--text3); width:22px }
+.mmp-item:hover, .mmp-item:active { background:var(--bg3) }
+.mmp-item.hidden { display:none }
 .mobile-nav a { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--text3); font-size: 10px; font-weight: 500; cursor: pointer; padding: 4px 2px; border: none; background: none; text-decoration: none; transition: color .15s }
 .mobile-nav a.active, .mobile-nav a:hover { color: var(--accent) }
 .mobile-nav a i { font-size: 22px }
@@ -1604,6 +1627,7 @@ textarea { resize: vertical; min-height: 80px }
     <div class="ni" role="button" tabindex="0" onclick="navigate('relatorios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('relatorios')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Relatórios</div>
     <div class="ni" role="button" tabindex="0" onclick="navigate('alertas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('alertas')"><i class="ti ti-bell" aria-hidden="true"></i> Alertas <span class="nbadge" id="alert-badge">0</span></div>
   </nav>
+  <div class="ni" role="button" tabindex="0" onclick="toggleTheme()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleTheme()" style="margin:4px 12px"><i class="ti ti-sun-moon" aria-hidden="true"></i> <span id="theme-toggle-label">Tema escuro</span></div>
   <div class="sf" onclick="doLogout()">
     <div class="av" id="user-avatar-nav">AD</div>
     <div style="flex:1"><div class="un" id="user-name-nav">Admin</div><div class="ur" id="user-role-nav">Administrador</div></div>
@@ -1658,7 +1682,7 @@ textarea { resize: vertical; min-height: 80px }
     </div>
 
     <div class="page" id="page-entrada">
-      <div class="ph"><div><div class="pt">Entradas</div><div class="ps">Recebimento de materiais</div></div><button class="btn bp" onclick="openModal('modal-entrada')"><i class="ti ti-plus"></i> Registrar Entrada</button></div>
+      <div class="ph"><div><div class="pt">Entradas</div><div class="ps">Recebimento de materiais</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportEntradasCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bp" onclick="openModal('modal-entrada')"><i class="ti ti-plus"></i> Registrar Entrada</button></div></div>
       <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Data</th><th>Produto</th><th>Qtd.</th><th>Fornecedor</th><th>Responsável</th><th>Tipo</th><th>Obs.</th><th></th></tr></thead><tbody id="entrada-body"></tbody></table></div></div></div>
     </div>
 
@@ -1682,12 +1706,12 @@ textarea { resize: vertical; min-height: 80px }
     </div>
 
     <div class="page" id="page-projetos">
-      <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="reconstruirProjetosDeHistorico()"><i class="ti ti-refresh"></i> Reconstruir do histórico</button><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div></div>
+      <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportProjetosCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bg" onclick="reconstruirProjetosDeHistorico()"><i class="ti ti-refresh"></i> Reconstruir do histórico</button><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div></div>
       <div id="projetos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
     </div>
 
     <div class="page" id="page-reservas">
-      <div class="ph"><div><div class="pt">Reservas SAP</div><div class="ps">Reserva extraída do SAP por serviço → PEP → nº de reserva. Usada para comparar com as saídas do KFLOW.</div></div><button class="btn bp" onclick="openModal('modal-reserva')"><i class="ti ti-plus"></i> Nova Reserva</button></div>
+      <div class="ph"><div><div class="pt">Reservas SAP</div><div class="ps">Reserva extraída do SAP por serviço → PEP → nº de reserva. Usada para comparar com as saídas do KFLOW.</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportReservasCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bp" onclick="openModal('modal-reserva')"><i class="ti ti-plus"></i> Nova Reserva</button></div></div>
       <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Nº Serviço</th><th>PEP</th><th>Nº Reserva</th><th>Produto</th><th>Qtd. Reservada</th><th></th></tr></thead><tbody id="reservas-body"></tbody></table></div></div></div>
     </div>
 
@@ -1730,7 +1754,18 @@ textarea { resize: vertical; min-height: 80px }
   <a onclick="navigate('entrada')" aria-label="Entradas"><i class="ti ti-package-import" aria-hidden="true"></i>Entradas</a>
   <a onclick="navigate('saida')" aria-label="Saídas"><i class="ti ti-package-export" aria-hidden="true"></i>Saídas</a>
   <a onclick="navigate('projetos')" aria-label="Projetos"><i class="ti ti-folders" aria-hidden="true"></i>Projetos</a>
+  <a onclick="toggleMobileMore()" id="mobile-more-btn" aria-label="Mais"><i class="ti ti-dots" aria-hidden="true"></i>Mais</a>
 </nav>
+<div class="mobile-more-backdrop" id="mobile-more-backdrop" onclick="toggleMobileMore()"></div>
+<div class="mobile-more-panel" id="mobile-more-panel" role="menu" aria-label="Mais opções">
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('reservas')"><i class="ti ti-database" aria-hidden="true"></i> Reservas SAP</div>
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('qrcodes')"><i class="ti ti-qrcode" aria-hidden="true"></i> QR Codes</div>
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('equipes')"><i class="ti ti-users" aria-hidden="true"></i> Equipes</div>
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('categorias')"><i class="ti ti-tags" aria-hidden="true"></i> Categorias</div>
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('relatorios')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Relatórios</div>
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('alertas')"><i class="ti ti-bell" aria-hidden="true"></i> Alertas</div>
+  <div class="mmp-item" id="mmp-usuarios" role="menuitem" tabindex="0" onclick="navigateFromMore('usuarios')"><i class="ti ti-user-cog" aria-hidden="true"></i> Usuários</div>
+</div>
 
 </div>
 <div class="mo" id="modal-produto">
@@ -1875,10 +1910,10 @@ textarea { resize: vertical; min-height: 80px }
 </div>
 
 <div class="mo" id="modal-projeto-detalhe">
-<div class="modal" style="max-width:780px">
-  <div class="mh"><span class="mt" id="mpd-title">Saídas do Projeto</span><button class="xb" onclick="closeModal('modal-projeto-detalhe')">&times;</button></div>
+<div class="modal" style="max-width:820px">
+  <div class="mh"><span class="mt" id="mpd-title">Movimentações</span><button class="xb" onclick="closeModal('modal-projeto-detalhe')">&times;</button></div>
   <div class="mb">
-    <div class="tw"><table><thead><tr><th>Data</th><th>Material</th><th>Qtd.</th><th>Equipe</th><th>Tipo</th><th>Responsável</th><th>Status SAP</th></tr></thead><tbody id="pd-saidas-body"></tbody></table></div>
+    <div class="tw"><table><thead><tr id="pd-thead"></tr></thead><tbody id="pd-saidas-body"></tbody></table></div>
   </div>
   <div class="mf">
     <button class="btn bg" onclick="closeModal('modal-projeto-detalhe')">Fechar</button>
@@ -2004,6 +2039,23 @@ function genId(){return Date.now().toString(36)+Math.random().toString(36).subst
 function today(){return new Date().toISOString().split('T')[0];}
 function fmtDate(d){if(!d)return'-';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
 
+function applyThemeOnLoad(){
+  var t='dark';
+  try{t=localStorage.getItem('kflow_theme')||'dark';}catch(e){}
+  document.documentElement.setAttribute('data-theme',t);
+  var lbl=document.getElementById('theme-toggle-label');
+  if(lbl)lbl.textContent=t==='light'?'Tema claro':'Tema escuro';
+}
+function toggleTheme(){
+  var cur=document.documentElement.getAttribute('data-theme')||'dark';
+  var novo=cur==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',novo);
+  try{localStorage.setItem('kflow_theme',novo);}catch(e){}
+  var lbl=document.getElementById('theme-toggle-label');
+  if(lbl)lbl.textContent=novo==='light'?'Tema claro':'Tema escuro';
+}
+applyThemeOnLoad();
+
 function setSyncStatus(ok){
   var dot=document.getElementById('sync-dot');
   if(!dot)return;
@@ -2113,9 +2165,11 @@ function applyUserUI(found){
   if(found.perfil!=='admin'){
     document.getElementById('nav-admin-section').classList.add('hidden');
     document.getElementById('nav-usuarios').classList.add('hidden');
+    document.getElementById('mmp-usuarios').classList.add('hidden');
   }else{
     document.getElementById('nav-admin-section').classList.remove('hidden');
     document.getElementById('nav-usuarios').classList.remove('hidden');
+    document.getElementById('mmp-usuarios').classList.remove('hidden');
   }
 }
 
@@ -2190,6 +2244,9 @@ function navigate(page){
   document.querySelectorAll('.mobile-nav a').forEach(function(a){
     a.classList.toggle('active', a.getAttribute('onclick')==="navigate('"+page+"')");
   });
+  var morePages=['reservas','qrcodes','equipes','categorias','relatorios','alertas','usuarios'];
+  var moreBtn=document.getElementById('mobile-more-btn');
+  if(moreBtn)moreBtn.classList.toggle('active', morePages.indexOf(page)>=0);
   currentPage=page;
   var cfg=pageCfg[page];
   document.getElementById('header-title').textContent=cfg.title;
@@ -2197,6 +2254,15 @@ function navigate(page){
   if(cfg.action&&canEdit()){btn.style.display='inline-flex';btn.innerHTML='<i class="ti ti-plus"></i> '+cfg.action;btn.onclick=cfg.actionFn;}
   else btn.style.display='none';
   renderPage(page);
+}
+
+function toggleMobileMore(){
+  document.getElementById('mobile-more-panel').classList.toggle('open');
+  document.getElementById('mobile-more-backdrop').classList.toggle('open');
+}
+function navigateFromMore(page){
+  toggleMobileMore();
+  navigate(page);
 }
 
 function headerAction(){}
@@ -2271,7 +2337,7 @@ function filterEstoque(search){
   var body=document.getElementById('estoque-body');
   body.innerHTML=list.map(function(p){
     var cat=gCat(p.categoria);
-    return'<tr><td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px">'+p.codigo+'</code></td><td><strong>'+p.nome+'</strong>'+(p.local?'<br><span style="font-size:11px;color:var(--text3)">'+p.local+'</span>':'')+'</td><td>'+(cat?'<span class="badge bb">'+cat.nome+'</span>':'-')+'</td><td><span style="font-size:18px;font-weight:700;color:'+stockColor(p)+'">'+p.qty+'</span><div class="sbar"><div class="sbf" style="width:'+stockPct(p)+'%;background:'+stockColor(p)+'"></div></div></td><td style="color:var(--text2)">'+p.unidade+'</td><td>'+p.min+'</td><td>'+statusBadge(p)+'</td><td><div style="display:flex;gap:5px"><button class="btn bg bsm" onclick="showQR(\''+p.id+'\')" title="QR Code"><i class="ti ti-qrcode"></i></button>'+(canEdit()?'<button class="btn bg bsm" onclick="editProduto(\''+p.id+'\')"><i class="ti ti-edit"></i></button><button class="btn bg bsm" style="color:var(--red)" onclick="delProduto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></td></tr>';
+    return'<tr><td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px">'+p.codigo+'</code></td><td><strong>'+p.nome+'</strong>'+(p.local?'<br><span style="font-size:11px;color:var(--text3)">'+p.local+'</span>':'')+'</td><td>'+(cat?'<span class="badge bb">'+cat.nome+'</span>':'-')+'</td><td><span style="font-size:18px;font-weight:700;color:'+stockColor(p)+'">'+p.qty+'</span><div class="sbar"><div class="sbf" style="width:'+stockPct(p)+'%;background:'+stockColor(p)+'"></div></div></td><td style="color:var(--text2)">'+p.unidade+'</td><td>'+p.min+'</td><td>'+statusBadge(p)+'</td><td><div style="display:flex;gap:5px"><button class="btn bg bsm" onclick="abrirDetalheProduto(\''+p.id+'\')" title="Histórico"><i class="ti ti-history"></i></button><button class="btn bg bsm" onclick="showQR(\''+p.id+'\')" title="QR Code"><i class="ti ti-qrcode"></i></button>'+(canEdit()?'<button class="btn bg bsm" onclick="editProduto(\''+p.id+'\')"><i class="ti ti-edit"></i></button><button class="btn bg bsm" style="color:var(--red)" onclick="delProduto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></td></tr>';
   }).join('')||'<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:30px">Nenhum produto encontrado</td></tr>';
 }
 
@@ -2762,10 +2828,26 @@ function salvarSaida(){
 }
 
 async function delMov(tipo,id){
-  var ok = await confirmDialog('O estoque NÃO será revertido automaticamente. Esta ação não pode ser desfeita.', {title:'Remover registro?', confirmText:'Remover'});
+  var col=tipo==='entrada'?'entradas':'saidas';
+  var list=tipo==='entrada'?db.entradas:db.saidas;
+  var mov=null;for(var i=0;i<list.length;i++)if(list[i].id===id){mov=list[i];break;}
+  if(!mov){toast('Registro não encontrado','error');return;}
+  var p=gP(mov.produto);
+
+  var reverter=false;
+  if(p){
+    reverter=await confirmDialog('Deseja também ajustar o estoque? '+(tipo==='entrada'?'Isso vai remover '+mov.qty+' '+p.unidade+' de "'+p.nome+'" do estoque atual (desfazendo a entrada).':'Isso vai devolver '+mov.qty+' '+p.unidade+' de "'+p.nome+'" ao estoque atual (desfazendo a saída).'), {title:'Ajustar estoque junto?', confirmText:'Sim, ajustar', cancelText:'Não, manter estoque', danger:false});
+  }
+  var ok=await confirmDialog('O registro será removido permanentemente.'+(p?(reverter?' O estoque SERÁ ajustado.':' O estoque NÃO será alterado.'):''), {title:'Remover registro?', confirmText:'Remover'});
   if(!ok)return;
-  fsDelete(tipo==='entrada'?'entradas':'saidas',id);
-  toast('Registro removido','info');
+
+  if(reverter&&p){
+    var delta=tipo==='entrada'?-mov.qty:mov.qty;
+    var novaQty=Math.max(0,p.qty+delta);
+    fsUpdate('produtos',p.id,{qty:novaQty});
+  }
+  fsDelete(col,id);
+  toast('Registro removido'+(reverter?' e estoque ajustado':''),'info');
 }
 
 function openRepor(id){
@@ -2953,6 +3035,9 @@ function pillSap(st){
 }
 
 // ===================== DETALHE DO PROJETO (todas as saídas e devoluções) =====================
+function setDetalheHeaders(cols){
+  document.getElementById('pd-thead').innerHTML=cols.map(function(c){return'<th>'+c+'</th>';}).join('');
+}
 function abrirDetalheProjeto(id){
   var p=null;for(var i=0;i<db.projetos.length;i++)if(db.projetos[i].id===id){p=db.projetos[i];break;}
   if(!p)return;
@@ -2962,6 +3047,7 @@ function abrirDetalheProjeto(id){
   var todos=saidasP.concat(devP);
   todos.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   document.getElementById('mpd-title').textContent='Movimentações — '+p.nome+(p.num?' ('+p.num+')':'');
+  setDetalheHeaders(['Data','Material','Qtd.','Equipe','Tipo','Responsável','Status SAP']);
   var statusMap=calcStatusParaLista(todos);
   var tb=document.getElementById('pd-saidas-body');
   if(!todos.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text3)">Nenhuma saída ou devolução registrada para este projeto ainda.</td></tr>';}
@@ -2977,6 +3063,48 @@ function abrirDetalheProjeto(id){
   }
   openModal('modal-projeto-detalhe');
 }
+
+function abrirDetalheEquipe(id){
+  var e=null;for(var i=0;i<db.equipes.length;i++)if(db.equipes[i].id===id){e=db.equipes[i];break;}
+  if(!e)return;
+  var s=db.saidas.filter(function(x){return x.equipe===id;});
+  s.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+  document.getElementById('mpd-title').textContent='Retiradas — '+e.nome;
+  setDetalheHeaders(['Data','Material','Qtd.','Projeto','Tipo','Responsável']);
+  var tb=document.getElementById('pd-saidas-body');
+  if(!s.length){tb.innerHTML='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">Nenhuma retirada registrada para esta equipe ainda.</td></tr>';}
+  else{
+    tb.innerHTML=s.map(function(x){
+      var prod=gP(x.produto);
+      return'<tr><td>'+fmtDate(x.data)+'</td><td>'+(prod?prod.nome:'[Removido]')+'</td><td><strong style="color:var(--red)">'+x.qty+'</strong> '+(prod?prod.unidade:'')+'</td><td><span class="badge bb">'+(x.projetoTxt||'-')+'</span></td><td>'+tipoBadge(x.tipoServ)+'</td><td>'+(x.resp||'-')+'</td></tr>';
+    }).join('');
+  }
+  openModal('modal-projeto-detalhe');
+}
+
+function abrirDetalheProduto(id){
+  var p=gP(id);
+  if(!p)return;
+  var s=db.saidas.filter(function(x){return x.produto===id;}).map(function(x){return Object.assign({movTipo:'saida'},x);});
+  var e=db.entradas.filter(function(x){return x.produto===id;}).map(function(x){return Object.assign({movTipo:'entrada'},x);});
+  var todos=s.concat(e);
+  todos.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+  document.getElementById('mpd-title').textContent='Histórico — '+p.nome;
+  setDetalheHeaders(['Data','Movimento','Qtd.','Projeto / Origem','Responsável']);
+  var tb=document.getElementById('pd-saidas-body');
+  if(!todos.length){tb.innerHTML='<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text3)">Nenhuma movimentação registrada para este produto ainda.</td></tr>';}
+  else{
+    tb.innerHTML=todos.map(function(x){
+      var isSaida=x.movTipo==='saida';
+      var movCol=isSaida?tipoBadge(x.tipoServ):'<span class="badge bs">'+(x.tipoMov||'Entrada')+'</span>';
+      var qtyCol='<strong style="color:'+(isSaida?'var(--red)':'var(--green)')+'">'+(isSaida?'-':'+')+x.qty+'</strong> '+p.unidade;
+      var origem=isSaida?(x.projetoTxt||'-'):(x.tipoMov==='Devolução'?(x.projetoTxt||'-'):(x.forn||'-'));
+      return'<tr><td>'+fmtDate(x.data)+'</td><td>'+movCol+'</td><td>'+qtyCol+'</td><td>'+origem+'</td><td>'+(x.resp||'-')+'</td></tr>';
+    }).join('');
+  }
+  openModal('modal-projeto-detalhe');
+}
+
 function salvarProjeto(){
   var nome=document.getElementById('mproj-nome').value.trim();if(!nome){toast('Informe o nome!','error');return;}
   var id=document.getElementById('mproj-id').value;
@@ -3014,7 +3142,7 @@ function renderEquipes(){
     var c=colors[i%colors.length];
     var membros=[];
     if(e.membros){membros=e.membros.split('\n').filter(function(m){return m.trim();});}
-    return'<div class="card" style="padding:20px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:12px;background:'+c+'22;display:flex;align-items:center;justify-content:center;font-size:20px;color:'+c+'"><i class="ti ti-users"></i></div><div><div style="font-weight:700;font-size:15px">'+e.nome+'</div><div style="font-size:12px;color:var(--text3)">'+(e.area||'')+'</div></div></div>'+(e.lider?'<div style="margin-bottom:10px;font-size:13px"><span style="color:var(--text2)">Líder:</span> '+e.lider+'</div>':'')+(membros.length?'<div style="margin-bottom:12px;font-size:12px;color:var(--text2)">'+membros.slice(0,3).join(', ')+(membros.length>3?' +mais':'')+'</div>':'')+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"><div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+c+'">'+s.length+'</div><div style="font-size:11px;color:var(--text3)">Retiradas</div></div><div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+c+'">'+s.reduce(function(a,b){return a+b.qty;},0)+'</div><div style="font-size:11px;color:var(--text3)">Itens</div></div></div>'+(canEdit()?'<div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn bg bsm" onclick="editEquipe(\''+e.id+'\')"><i class="ti ti-edit"></i> Editar</button><button class="btn bg bsm" style="color:var(--red)" onclick="delEquipe(\''+e.id+'\')"><i class="ti ti-trash"></i></button></div>':'')+'</div>';
+    return'<div class="card" style="padding:20px"><div style="display:flex;align-items:center;gap:12px;margin-bottom:14px"><div style="width:44px;height:44px;border-radius:12px;background:'+c+'22;display:flex;align-items:center;justify-content:center;font-size:20px;color:'+c+'"><i class="ti ti-users"></i></div><div><div style="font-weight:700;font-size:15px">'+e.nome+'</div><div style="font-size:12px;color:var(--text3)">'+(e.area||'')+'</div></div></div>'+(e.lider?'<div style="margin-bottom:10px;font-size:13px"><span style="color:var(--text2)">Líder:</span> '+e.lider+'</div>':'')+(membros.length?'<div style="margin-bottom:12px;font-size:12px;color:var(--text2)">'+membros.slice(0,3).join(', ')+(membros.length>3?' +mais':'')+'</div>':'')+'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"><div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+c+'">'+s.length+'</div><div style="font-size:11px;color:var(--text3)">Retiradas</div></div><div style="background:var(--bg3);border-radius:8px;padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:'+c+'">'+s.reduce(function(a,b){return a+b.qty;},0)+'</div><div style="font-size:11px;color:var(--text3)">Itens</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn bg bsm" onclick="abrirDetalheEquipe(\''+e.id+'\')"><i class="ti ti-list-details"></i> Ver retiradas</button>'+(canEdit()?'<button class="btn bg bsm" onclick="editEquipe(\''+e.id+'\')"><i class="ti ti-edit"></i> Editar</button><button class="btn bg bsm" style="color:var(--red)" onclick="delEquipe(\''+e.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></div>';
   }).join('')||'<div style="padding:40px;text-align:center;color:var(--text3)">Nenhuma equipe cadastrada</div>';
 }
 function salvarEquipe(){
@@ -3246,12 +3374,27 @@ function openModal(id){
 function closeModal(id){var m=document.getElementById(id);if(m)m.classList.remove('open');}
 document.addEventListener('click',function(e){if(e.target.classList.contains('mo'))e.target.classList.remove('open');});
 
-function exportCSV(){
-  var rows=[['Código','Nome','Categoria','Quantidade','Unidade','Mínimo','Localização','Status']];
-  db.produtos.forEach(function(p){var cat=gCat(p.categoria);rows.push([p.codigo,p.nome,cat?cat.nome:'',p.qty,p.unidade,p.min,p.local||'',p.qty===0?'Zerado':p.qty<=p.min?'Baixo':'OK']);});
-  var csv=rows.map(function(r){return r.map(function(v){return'"'+v+'"';}).join(',');}).join('\n');
-  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download='kflow-estoque.csv';a.click();
+function baixarCSV(filename, headers, rows){
+  var all=[headers].concat(rows);
+  var csv=all.map(function(r){return r.map(function(v){return'"'+String(v===undefined||v===null?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download=filename;a.click();
   toast('Exportado!','success');
+}
+function exportCSV(){
+  var rows=db.produtos.map(function(p){var cat=gCat(p.categoria);return[p.codigo,p.nome,cat?cat.nome:'',p.qty,p.unidade,p.min,p.local||'',p.qty===0?'Zerado':p.qty<=p.min?'Baixo':'OK'];});
+  baixarCSV('kflow-estoque.csv',['Código','Nome','Categoria','Quantidade','Unidade','Mínimo','Localização','Status'],rows);
+}
+function exportEntradasCSV(){
+  var rows=db.entradas.map(function(e){var p=gP(e.produto);return[fmtDate(e.data),p?p.codigo:'',p?p.nome:'[Removido]',e.qty,p?p.unidade:'',e.tipoMov||'',e.projetoTxt||'',e.forn||'',e.resp||'',e.obs||''];});
+  baixarCSV('kflow-entradas.csv',['Data','Código','Produto','Qtd','Unidade','Tipo','Projeto (devolução)','Fornecedor/Origem','Responsável','Observações'],rows);
+}
+function exportProjetosCSV(){
+  var rows=db.projetos.map(function(p){var s=db.saidas.filter(function(x){return x.projetoTxt===p.nome||(p.num&&x.projetoTxt&&x.projetoTxt.indexOf(p.num)>=0);});return[p.nome,p.codigo||'',p.num||'',p.status||'',fmtDate(p.inicio),fmtDate(p.fim),s.length,s.reduce(function(a,b){return a+b.qty;},0)];});
+  baixarCSV('kflow-projetos.csv',['Nome','Código','Nº Equatorial','Status','Início','Término Previsto','Qtd Retiradas','Total Itens'],rows);
+}
+function exportReservasCSV(){
+  var rows=db.reservas.map(function(r){var p=gP(r.produto);return[r.servico||'',r.pep||'',r.reserva||'',p?p.codigo:'',p?p.nome:'[Removido]',r.qtd,p?p.unidade:''];});
+  baixarCSV('kflow-reservas-sap.csv',['Nº Serviço','PEP','Nº Reserva','Código Produto','Produto','Qtd Reservada','Unidade'],rows);
 }
 
 function globalSearch(val){if(!val)return;navigate('estoque');setTimeout(function(){filterEstoque(val);},50);}
