@@ -1464,6 +1464,9 @@ tbody tr:nth-child(even):hover td { background: rgba(91,141,239,.06) }
 
 /* ─── Badges ────────────────────────────────────────────────────── */
 .badge { display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: .2px; border: 1px solid transparent }
+.ptab { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border: 1px solid var(--border) }
+.ptab:hover { color: var(--text) }
+.ptab.sel { background: var(--accent-hi); color: var(--accent); border-color: var(--accent) }
 .bg2 { background: rgba(34,197,94,.12); color: #4ade80; border-color: rgba(34,197,94,.22) }
 .br  { background: rgba(239,68,68,.12); color: #f87171; border-color: rgba(239,68,68,.22) }
 .ba  { background: rgba(245,158,11,.12); color: #fbbf24; border-color: rgba(245,158,11,.22) }
@@ -1761,6 +1764,10 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 
     <div class="page" id="page-projetos">
       <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportPepsRobo()" title="Gera o arquivo que o robô de automação SAP vai ler"><i class="ti ti-robot"></i> Exportar PEPs (robô)</button><button class="btn bg" onclick="exportProjetosCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bg" onclick="reconstruirProjetosDeHistorico()"><i class="ti ti-refresh"></i> Reconstruir do histórico</button><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div></div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <div class="ptab sel" id="ptab-ativos" onclick="setProjetosTab('ativos')">Ativos</div>
+        <div class="ptab" id="ptab-liquidados" onclick="setProjetosTab('liquidados')">Liquidados</div>
+      </div>
       <div id="projetos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
     </div>
 
@@ -1925,7 +1932,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
       <div class="fg"><label>Código</label><input type="text" id="mproj-cod" placeholder="PROJ-001"></div>
     </div>
     <div class="fr">
-      <div class="fg"><label>Status</label><select id="mproj-status"><option value="ativo">Ativo</option><option value="pausado">Pausado</option><option value="concluido">Concluído</option></select></div>
+      <div class="fg"><label>Status</label><select id="mproj-status"><option value="ativo">Ativo</option><option value="pausado">Pausado</option><option value="concluido">Concluído</option><option value="liquidado">Liquidado</option></select></div>
       <div class="fg"><label>Número Equatorial</label><input type="text" id="mproj-num" placeholder="EQ-12345"></div>
     </div>
     <div class="fr">
@@ -1965,13 +1972,23 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 </div>
 
 <div class="mo" id="modal-projeto-detalhe">
-<div class="modal" style="max-width:820px">
+<div class="modal" style="max-width:860px">
   <div class="mh"><span class="mt" id="mpd-title">Movimentações</span><button class="xb" onclick="closeModal('modal-projeto-detalhe')">&times;</button></div>
   <div class="mb">
     <div id="mpd-pep-bar" style="display:none;margin-bottom:12px"></div>
+    <div id="pd-filtro-data" style="display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+      <div class="fg" style="margin:0"><label>De</label><input type="date" id="pd-data-ini" onchange="pdRenderAtual()"></div>
+      <div class="fg" style="margin:0"><label>Até</label><input type="date" id="pd-data-fim" onchange="pdRenderAtual()"></div>
+      <button class="btn bg bsm" onclick="pdLimparFiltroData()"><i class="ti ti-x"></i> Limpar datas</button>
+      <div style="flex:1"></div>
+      <button class="btn bg bsm" onclick="pdExportar()"><i class="ti ti-file-spreadsheet"></i> Exportar</button>
+      <button class="btn bg bsm" id="pd-btn-imprimir" style="display:none" onclick="pdImprimirAssinatura()"><i class="ti ti-printer"></i> Imprimir p/ assinatura</button>
+    </div>
     <div class="tw"><table><thead><tr id="pd-thead"></tr></thead><tbody id="pd-saidas-body"></tbody></table></div>
   </div>
   <div class="mf">
+    <button class="btn bg" id="pd-btn-liquidar" style="display:none;color:var(--amber)" onclick="pdLiquidarProjeto()"><i class="ti ti-package-off"></i> Marcar como Liquidado</button>
+    <div style="flex:1"></div>
     <button class="btn bg" onclick="closeModal('modal-projeto-detalhe')">Fechar</button>
   </div>
 </div>
@@ -2975,17 +2992,31 @@ async function delProduto(id){
   toast('Produto removido','info');
 }
 
+window._projetosTab = window._projetosTab || 'ativos';
+function setProjetosTab(tab){
+  window._projetosTab = tab;
+  document.getElementById('ptab-ativos').classList.toggle('sel', tab==='ativos');
+  document.getElementById('ptab-liquidados').classList.toggle('sel', tab==='liquidados');
+  renderProjetos();
+}
 function renderProjetos(){
   var grid=document.getElementById('projetos-grid');
-  if(!db.projetos.length){grid.innerHTML='<div class="es" style="grid-column:1/-1"><i class="ti ti-folders"></i><div class="es-t">Nenhum projeto cadastrado</div><div class="es-s">Projetos também são criados automaticamente ao digitar no campo de Saída.</div></div>';return;}
-  var statMap={ativo:'bg2',pausado:'ba',concluido:'bb'};
-  var statLbl={ativo:'Ativo',pausado:'Pausado',concluido:'Concluído'};
-  grid.innerHTML=db.projetos.map(function(p){
+  var tab = window._projetosTab || 'ativos';
+  var lista = db.projetos.filter(function(p){ return tab==='liquidados' ? p.status==='liquidado' : p.status!=='liquidado'; });
+  if(!lista.length){
+    var msg = tab==='liquidados' ? 'Nenhum projeto liquidado ainda' : 'Nenhum projeto ativo';
+    grid.innerHTML='<div class="es" style="grid-column:1/-1"><i class="ti ti-folders"></i><div class="es-t">'+msg+'</div><div class="es-s">Projetos também são criados automaticamente ao digitar no campo de Saída.</div></div>';
+    return;
+  }
+  var statMap={ativo:'bg2',pausado:'ba',concluido:'bb',liquidado:'bb'};
+  var statLbl={ativo:'Ativo',pausado:'Pausado',concluido:'Concluído',liquidado:'Liquidado'};
+  grid.innerHTML=lista.map(function(p){
     var s=db.saidas.filter(function(x){return x.projetoTxt===p.nome||(p.num&&x.projetoTxt&&x.projetoTxt.indexOf(p.num)>=0);});
     var pepBadge=p.pep?'<span class="badge" style="background:var(--teal)22;color:var(--teal);border:1px solid var(--teal)55;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-robot"></i> PEP '+p.pep+'</span>':'<span class="badge" style="background:var(--amber)22;color:var(--amber);border:1px solid var(--amber)55;display:inline-flex;align-items:center;gap:4px" title="Sem PEP cadastrado — este projeto é ignorado pela automação com o SAP até a reserva existir"><i class="ti ti-robot-off"></i> Sem PEP</span>';
     return'<div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div><div style="font-weight:700;font-size:15px;margin-bottom:2px">'+p.nome+'</div><div style="font-size:11px;color:var(--text3)">'+(p.codigo||'')+' '+(p.num?'&bull; '+p.num:'')+'</div></div><span class="badge '+(statMap[p.status]||'bb')+'">'+(statLbl[p.status]||p.status)+'</span></div><div style="margin-bottom:10px">'+pepBadge+'</div><div style="font-size:13px;color:var(--text2);margin-bottom:14px;min-height:32px">'+(p.desc||'Sem descrição')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent)">'+s.length+'</div><div style="font-size:11px;color:var(--text3)">Retiradas</div></div><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--teal)">'+s.reduce(function(a,b){return a+b.qty;},0)+'</div><div style="font-size:11px;color:var(--text3)">Itens</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn bg bsm" onclick="abrirDetalheProjeto(\''+p.id+'\')"><i class="ti ti-list-details"></i> Ver saídas</button>'+(canEdit()?'<button class="btn bg bsm" onclick="editProjeto(\''+p.id+'\')"><i class="ti ti-edit"></i> Editar</button><button class="btn bg bsm" style="color:var(--red)" onclick="delProjeto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></div>';
   }).join('');
 }
+
 
 // ===================== RESERVAS SAP =====================
 function renderReservas(){
@@ -3095,6 +3126,34 @@ function pillSap(st){
 function setDetalheHeaders(cols){
   document.getElementById('pd-thead').innerHTML=cols.map(function(c){return'<th>'+c+'</th>';}).join('');
 }
+
+// Estado compartilhado do modal de detalhe (projeto/equipe/produto), para permitir
+// filtrar por data, exportar e imprimir sem precisar reabrir o modal.
+window._pdState = {tipo:'', entidade:null, lista:[]};
+
+function pdFiltrarPorData(lista){
+  var ini=document.getElementById('pd-data-ini').value;
+  var fim=document.getElementById('pd-data-fim').value;
+  if(!ini && !fim) return lista;
+  return lista.filter(function(x){
+    if(ini && x.data < ini) return false;
+    if(fim && x.data > fim) return false;
+    return true;
+  });
+}
+function pdLimparFiltroData(){
+  document.getElementById('pd-data-ini').value='';
+  document.getElementById('pd-data-fim').value='';
+  pdRenderAtual();
+}
+function pdRenderAtual(){
+  var st=window._pdState;
+  var lista=pdFiltrarPorData(st.lista);
+  if(st.tipo==='projeto') pdRenderCorpoProjeto(st.entidade, lista);
+  else if(st.tipo==='equipe') pdRenderCorpoEquipe(st.entidade, lista);
+  else if(st.tipo==='produto') pdRenderCorpoProduto(st.entidade, lista);
+}
+
 function abrirDetalheProjeto(id){
   var p=null;for(var i=0;i<db.projetos.length;i++)if(db.projetos[i].id===id){p=db.projetos[i];break;}
   if(!p)return;
@@ -3103,6 +3162,13 @@ function abrirDetalheProjeto(id){
   var devP=db.entradas.filter(function(x){return x.tipoMov==='Devolução'&&matchProj(x.projetoTxt);}).map(function(x){return Object.assign({movTipo:'devolucao'},x);});
   var todos=saidasP.concat(devP);
   todos.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+
+  window._pdState = {tipo:'projeto', entidade:p, lista:todos};
+  document.getElementById('pd-data-ini').value='';
+  document.getElementById('pd-data-fim').value='';
+  document.getElementById('pd-btn-imprimir').style.display='inline-flex';
+  document.getElementById('pd-btn-liquidar').style.display = (canEdit() && p.status!=='liquidado') ? 'inline-flex' : 'none';
+
   document.getElementById('mpd-title').textContent='Movimentações — '+p.nome+(p.num?' ('+p.num+')':'');
   var pepBar=document.getElementById('mpd-pep-bar');
   if(p.pep){
@@ -3113,9 +3179,13 @@ function abrirDetalheProjeto(id){
     pepBar.innerHTML='<div style="background:var(--amber)15;border:1px solid var(--amber)40;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--amber);width:100%"><i class="ti ti-robot-off"></i> <strong>Sem PEP cadastrado</strong> — este projeto é ignorado pela automação até a reserva existir no SAP. <button class="btn bg bsm" style="margin-left:auto" onclick="closeModal(\'modal-projeto-detalhe\');editProjeto(\''+p.id+'\')">Preencher PEP</button></div>';
   }
   setDetalheHeaders(['Data','Material','Qtd.','Equipe','Tipo','Responsável','Status SAP']);
+  pdRenderCorpoProjeto(p, todos);
+  openModal('modal-projeto-detalhe');
+}
+function pdRenderCorpoProjeto(p, todos){
   var statusMap=calcStatusParaLista(todos);
   var tb=document.getElementById('pd-saidas-body');
-  if(!todos.length){tb.innerHTML='<tr><td colspan="7"><div class="es-sm">Nenhuma saída ou devolução registrada para este projeto ainda.</div></td></tr>';}
+  if(!todos.length){tb.innerHTML='<tr><td colspan="7"><div class="es-sm">Nenhuma saída ou devolução no período selecionado.</div></td></tr>';}
   else{
     tb.innerHTML=todos.map(function(x){
       var prod=gP(x.produto); var eq=x.movTipo==='saida'?gEq(x.equipe):null;
@@ -3126,7 +3196,6 @@ function abrirDetalheProjeto(id){
       return'<tr><td>'+fmtDate(x.data)+'</td><td>'+(prod?prod.nome:'[Removido]')+'</td><td>'+qtyCol+'</td><td>'+(eq?eq.nome:'-')+'</td><td>'+tipoCol+'</td><td>'+(x.resp||'-')+'</td><td>'+pillSap(statusMap[statusKey])+'</td></tr>';
     }).join('');
   }
-  openModal('modal-projeto-detalhe');
 }
 
 function abrirDetalheEquipe(id){
@@ -3134,18 +3203,28 @@ function abrirDetalheEquipe(id){
   if(!e)return;
   var s=db.saidas.filter(function(x){return x.equipe===id;});
   s.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+
+  window._pdState = {tipo:'equipe', entidade:e, lista:s};
+  document.getElementById('pd-data-ini').value='';
+  document.getElementById('pd-data-fim').value='';
+  document.getElementById('pd-btn-imprimir').style.display='none';
+  document.getElementById('pd-btn-liquidar').style.display='none';
+
   document.getElementById('mpd-title').textContent='Retiradas — '+e.nome;
   document.getElementById('mpd-pep-bar').style.display='none';
   setDetalheHeaders(['Data','Material','Qtd.','Projeto','Tipo','Responsável']);
+  pdRenderCorpoEquipe(e, s);
+  openModal('modal-projeto-detalhe');
+}
+function pdRenderCorpoEquipe(e, s){
   var tb=document.getElementById('pd-saidas-body');
-  if(!s.length){tb.innerHTML='<tr><td colspan="6"><div class="es-sm">Nenhuma retirada registrada para esta equipe ainda.</div></td></tr>';}
+  if(!s.length){tb.innerHTML='<tr><td colspan="6"><div class="es-sm">Nenhuma retirada no período selecionado.</div></td></tr>';}
   else{
     tb.innerHTML=s.map(function(x){
       var prod=gP(x.produto);
       return'<tr><td>'+fmtDate(x.data)+'</td><td>'+(prod?prod.nome:'[Removido]')+'</td><td><strong style="color:var(--red)">'+x.qty+'</strong> '+(prod?prod.unidade:'')+'</td><td><span class="badge bb">'+(x.projetoTxt||'-')+'</span></td><td>'+tipoBadge(x.tipoServ)+'</td><td>'+(x.resp||'-')+'</td></tr>';
     }).join('');
   }
-  openModal('modal-projeto-detalhe');
 }
 
 function abrirDetalheProduto(id){
@@ -3155,11 +3234,22 @@ function abrirDetalheProduto(id){
   var e=db.entradas.filter(function(x){return x.produto===id;}).map(function(x){return Object.assign({movTipo:'entrada'},x);});
   var todos=s.concat(e);
   todos.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+
+  window._pdState = {tipo:'produto', entidade:p, lista:todos};
+  document.getElementById('pd-data-ini').value='';
+  document.getElementById('pd-data-fim').value='';
+  document.getElementById('pd-btn-imprimir').style.display='none';
+  document.getElementById('pd-btn-liquidar').style.display='none';
+
   document.getElementById('mpd-title').textContent='Histórico — '+p.nome;
   document.getElementById('mpd-pep-bar').style.display='none';
   setDetalheHeaders(['Data','Movimento','Qtd.','Projeto / Origem','Responsável']);
+  pdRenderCorpoProduto(p, todos);
+  openModal('modal-projeto-detalhe');
+}
+function pdRenderCorpoProduto(p, todos){
   var tb=document.getElementById('pd-saidas-body');
-  if(!todos.length){tb.innerHTML='<tr><td colspan="5"><div class="es-sm">Nenhuma movimentação registrada para este produto ainda.</div></td></tr>';}
+  if(!todos.length){tb.innerHTML='<tr><td colspan="5"><div class="es-sm">Nenhuma movimentação no período selecionado.</div></td></tr>';}
   else{
     tb.innerHTML=todos.map(function(x){
       var isSaida=x.movTipo==='saida';
@@ -3169,8 +3259,101 @@ function abrirDetalheProduto(id){
       return'<tr><td>'+fmtDate(x.data)+'</td><td>'+movCol+'</td><td>'+qtyCol+'</td><td>'+origem+'</td><td>'+(x.resp||'-')+'</td></tr>';
     }).join('');
   }
-  openModal('modal-projeto-detalhe');
 }
+
+function pdExportar(){
+  var st=window._pdState;
+  var lista=pdFiltrarPorData(st.lista);
+  if(!lista.length){toast('Nada para exportar nesse período','error');return;}
+
+  if(st.tipo==='projeto'){
+    var statusMap=calcStatusParaLista(lista);
+    var rows=lista.map(function(x){
+      var prod=gP(x.produto); var eq=x.movTipo==='saida'?gEq(x.equipe):null;
+      var isDev=x.movTipo==='devolucao';
+      var st2=statusMap[x.movTipo+':'+x.id];
+      return[fmtDate(x.data),prod?prod.nome:'[Removido]',(isDev?'+':'-')+x.qty,eq?eq.nome:'-',isDev?'Devolução':(x.tipoServ||'-'),x.resp||'-',st2?st2.text:'-'];
+    });
+    baixarCSV('kflow-'+(st.entidade.nome||'projeto').replace(/[^a-z0-9]+/gi,'_').toLowerCase()+'.csv',['Data','Material','Qtd.','Equipe','Tipo','Responsável','Status SAP'],rows);
+  } else if(st.tipo==='equipe'){
+    var rows2=lista.map(function(x){var prod=gP(x.produto);return[fmtDate(x.data),prod?prod.nome:'[Removido]',x.qty,x.projetoTxt||'-',x.tipoServ||'-',x.resp||'-'];});
+    baixarCSV('kflow-'+(st.entidade.nome||'equipe').replace(/[^a-z0-9]+/gi,'_').toLowerCase()+'.csv',['Data','Material','Qtd.','Projeto','Tipo','Responsável'],rows2);
+  } else if(st.tipo==='produto'){
+    var rows3=lista.map(function(x){var isSaida=x.movTipo==='saida';return[fmtDate(x.data),isSaida?(x.tipoServ||'Saída'):(x.tipoMov||'Entrada'),(isSaida?'-':'+')+x.qty,isSaida?(x.projetoTxt||'-'):(x.forn||x.projetoTxt||'-'),x.resp||'-'];});
+    baixarCSV('kflow-'+(st.entidade.nome||'produto').replace(/[^a-z0-9]+/gi,'_').toLowerCase()+'.csv',['Data','Movimento','Qtd.','Projeto / Origem','Responsável'],rows3);
+  }
+}
+
+// Folha de saída para imprimir e o almoxarifado colher assinatura de quem despachou/recebeu
+function pdImprimirAssinatura(){
+  var st=window._pdState;
+  if(st.tipo!=='projeto'){toast('Impressão de folha de assinatura disponível só para projetos','error');return;}
+  var p=st.entidade;
+  var lista=pdFiltrarPorData(st.lista).filter(function(x){return x.movTipo==='saida';});
+  if(!lista.length){toast('Nenhuma saída nesse período para imprimir','error');return;}
+  lista=lista.slice().sort(function(a,b){return (a.data||'').localeCompare(b.data||'');});
+
+  var ini=document.getElementById('pd-data-ini').value;
+  var fim=document.getElementById('pd-data-fim').value;
+  var periodo = ini||fim ? ('Período: '+(ini?fmtDate(ini):'início')+' até '+(fim?fmtDate(fim):'hoje')) : 'Todas as datas';
+
+  var linhas=lista.map(function(x){
+    var prod=gP(x.produto); var eq=gEq(x.equipe);
+    return "<tr><td>"+fmtDate(x.data)+"</td><td><b>"+(prod?prod.nome:"[Removido]")+"</b><br><small>"+(prod?prod.codigo:"")+"</small></td>"
+      +"<td style='text-align:center'>"+x.qty+" "+(prod?prod.unidade:"un")+"</td>"
+      +"<td>"+(eq?eq.nome:"-")+"</td><td>"+(x.tipoServ||"-")+"</td><td>"+(x.resp||"-")+"</td></tr>";
+  }).join("");
+
+  var css=[
+    "*{box-sizing:border-box;margin:0;padding:0}",
+    "body{font-family:Arial,sans-serif;font-size:12px;padding:20px;color:#111}",
+    ".hdr{text-align:center;margin-bottom:20px;border-bottom:2px solid #0A4D4D;padding-bottom:12px}",
+    ".hdr h1{font-size:20px;color:#0A4D4D;margin-bottom:4px}",
+    ".hdr p{font-size:12px;color:#555}",
+    ".hdr .meta{font-size:11px;color:#888;margin-top:6px}",
+    "table{width:100%;border-collapse:collapse;margin-bottom:24px}",
+    "th{background:#0A4D4D;color:white;padding:8px 6px;text-align:left;font-size:11px}",
+    "td{padding:6px;border-bottom:1px solid #ddd;font-size:11px}",
+    "tr:nth-child(even) td{background:#f9f9f9}",
+    ".assinaturas{display:flex;gap:30px;margin-top:50px}",
+    ".assin{flex:1;text-align:center}",
+    ".assin .linha{border-top:1px solid #111;margin-top:40px;padding-top:6px;font-size:11px}",
+    ".footer{text-align:center;font-size:10px;color:#aaa;margin-top:20px;border-top:1px solid #ddd;padding-top:8px}",
+    "@media print{body{padding:10px}}"
+  ].join(" ");
+
+  var w=window.open("","_blank","width=1000,height=800");
+  var parts=[];
+  parts.push("<!DOCTYPE html><html><head><meta charset='UTF-8'>");
+  parts.push("<title>Folha de Saida - "+p.nome+"</title>");
+  parts.push("<style>"+css+"</style></head><body>");
+  parts.push("<div class='hdr'><h1>Folha de Saída de Material</h1>");
+  parts.push("<p><b>Projeto:</b> "+p.nome+(p.num?' ('+p.num+')':'')+(p.pep?' — PEP '+p.pep:'')+"</p>");
+  parts.push("<div class='meta'>"+periodo+" | Gerado em: "+new Date().toLocaleString("pt-BR")+" | "+lista.length+" item(ns)</div></div>");
+  parts.push("<table><thead><tr><th>Data</th><th>Material</th><th>Qtd.</th><th>Equipe</th><th>Tipo</th><th>Separado por</th></tr></thead>");
+  parts.push("<tbody>"+linhas+"</tbody></table>");
+  parts.push("<div class='assinaturas'>");
+  parts.push("<div class='assin'>Data: ____/____/______<div class='linha'>Despachado por (almoxarifado)</div></div>");
+  parts.push("<div class='assin'>Data: ____/____/______<div class='linha'>Recebido por (equipe de campo)</div></div>");
+  parts.push("</div>");
+  parts.push("<div class='footer'>KFLOW - Controle de Estoque</div>");
+  parts.push("<scr"+"ipt>window.onload=function(){window.print();}<"+"/scr"+"ipt>");
+  parts.push("\x3c/body\x3e\x3c/html\x3e");
+  w.document.write(parts.join(""));
+  w.document.close();
+}
+
+async function pdLiquidarProjeto(){
+  var st=window._pdState;
+  if(st.tipo!=='projeto')return;
+  var p=st.entidade;
+  var ok=await confirmDialog('O projeto "'+p.nome+'" vai para a aba Liquidados e deixa de ser considerado pela automação com o SAP. Você pode reverter depois editando o status.', {title:'Marcar projeto como liquidado?', confirmText:'Liquidar', danger:false});
+  if(!ok)return;
+  fsUpdate('projetos', p.id, {status:'liquidado'});
+  closeModal('modal-projeto-detalhe');
+  toast('Projeto marcado como liquidado','success');
+}
+
 
 function salvarProjeto(){
   var nome=document.getElementById('mproj-nome').value.trim();if(!nome){toast('Informe o nome!','error');return;}
@@ -3464,7 +3647,7 @@ function exportProjetosCSV(){
 // só de projetos ativos que já têm o campo PEP preenchido. Projetos sem PEP são ignorados de
 // propósito, porque a reserva pode ainda não existir no SAP.
 function exportPepsRobo(){
-  var peps=db.projetos.filter(function(p){return p.pep && p.pep.trim() && p.status!=='concluido';}).map(function(p){return p.pep.trim();});
+  var peps=db.projetos.filter(function(p){return p.pep && p.pep.trim() && p.status!=='concluido' && p.status!=='liquidado';}).map(function(p){return p.pep.trim();});
   var uniq=Array.from(new Set(peps));
   if(!uniq.length){toast('Nenhum projeto com PEP preenchido ainda','error');return;}
   var txt=uniq.join('\r\n');
