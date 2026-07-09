@@ -1760,7 +1760,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
     </div>
 
     <div class="page" id="page-projetos">
-      <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportProjetosCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bg" onclick="reconstruirProjetosDeHistorico()"><i class="ti ti-refresh"></i> Reconstruir do histórico</button><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div></div>
+      <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportPepsRobo()" title="Gera o arquivo que o robô de automação SAP vai ler"><i class="ti ti-robot"></i> Exportar PEPs (robô)</button><button class="btn bg" onclick="exportProjetosCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bg" onclick="reconstruirProjetosDeHistorico()"><i class="ti ti-refresh"></i> Reconstruir do histórico</button><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div></div>
       <div id="projetos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
     </div>
 
@@ -1932,6 +1932,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
       <div class="fg"><label>Início</label><input type="date" id="mproj-ini"></div>
       <div class="fg"><label>Término Previsto</label><input type="date" id="mproj-fim"></div>
     </div>
+    <div class="fg"><label>Nº PEP <span style="color:var(--text3);font-weight:400">(automação SAP só roda com PEP preenchido)</span></label><input type="text" id="mproj-pep" placeholder="Ex: E.10.20 — deixe em branco se a reserva ainda não existe no SAP"></div>
     <div class="fg"><label>Descrição</label><textarea id="mproj-desc" placeholder="..."></textarea></div>
   </div>
   <div class="mf">
@@ -1967,6 +1968,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 <div class="modal" style="max-width:820px">
   <div class="mh"><span class="mt" id="mpd-title">Movimentações</span><button class="xb" onclick="closeModal('modal-projeto-detalhe')">&times;</button></div>
   <div class="mb">
+    <div id="mpd-pep-bar" style="display:none;margin-bottom:12px"></div>
     <div class="tw"><table><thead><tr id="pd-thead"></tr></thead><tbody id="pd-saidas-body"></tbody></table></div>
   </div>
   <div class="mf">
@@ -2980,7 +2982,8 @@ function renderProjetos(){
   var statLbl={ativo:'Ativo',pausado:'Pausado',concluido:'Concluído'};
   grid.innerHTML=db.projetos.map(function(p){
     var s=db.saidas.filter(function(x){return x.projetoTxt===p.nome||(p.num&&x.projetoTxt&&x.projetoTxt.indexOf(p.num)>=0);});
-    return'<div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div><div style="font-weight:700;font-size:15px;margin-bottom:2px">'+p.nome+'</div><div style="font-size:11px;color:var(--text3)">'+(p.codigo||'')+' '+(p.num?'&bull; '+p.num:'')+'</div></div><span class="badge '+(statMap[p.status]||'bb')+'">'+(statLbl[p.status]||p.status)+'</span></div><div style="font-size:13px;color:var(--text2);margin-bottom:14px;min-height:32px">'+(p.desc||'Sem descrição')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent)">'+s.length+'</div><div style="font-size:11px;color:var(--text3)">Retiradas</div></div><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--teal)">'+s.reduce(function(a,b){return a+b.qty;},0)+'</div><div style="font-size:11px;color:var(--text3)">Itens</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn bg bsm" onclick="abrirDetalheProjeto(\''+p.id+'\')"><i class="ti ti-list-details"></i> Ver saídas</button>'+(canEdit()?'<button class="btn bg bsm" onclick="editProjeto(\''+p.id+'\')"><i class="ti ti-edit"></i> Editar</button><button class="btn bg bsm" style="color:var(--red)" onclick="delProjeto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></div>';
+    var pepBadge=p.pep?'<span class="badge" style="background:var(--teal)22;color:var(--teal);border:1px solid var(--teal)55;display:inline-flex;align-items:center;gap:4px"><i class="ti ti-robot"></i> PEP '+p.pep+'</span>':'<span class="badge" style="background:var(--amber)22;color:var(--amber);border:1px solid var(--amber)55;display:inline-flex;align-items:center;gap:4px" title="Sem PEP cadastrado — este projeto é ignorado pela automação com o SAP até a reserva existir"><i class="ti ti-robot-off"></i> Sem PEP</span>';
+    return'<div class="card" style="padding:20px"><div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px"><div><div style="font-weight:700;font-size:15px;margin-bottom:2px">'+p.nome+'</div><div style="font-size:11px;color:var(--text3)">'+(p.codigo||'')+' '+(p.num?'&bull; '+p.num:'')+'</div></div><span class="badge '+(statMap[p.status]||'bb')+'">'+(statLbl[p.status]||p.status)+'</span></div><div style="margin-bottom:10px">'+pepBadge+'</div><div style="font-size:13px;color:var(--text2);margin-bottom:14px;min-height:32px">'+(p.desc||'Sem descrição')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px"><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent)">'+s.length+'</div><div style="font-size:11px;color:var(--text3)">Retiradas</div></div><div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--teal)">'+s.reduce(function(a,b){return a+b.qty;},0)+'</div><div style="font-size:11px;color:var(--text3)">Itens</div></div></div><div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap"><button class="btn bg bsm" onclick="abrirDetalheProjeto(\''+p.id+'\')"><i class="ti ti-list-details"></i> Ver saídas</button>'+(canEdit()?'<button class="btn bg bsm" onclick="editProjeto(\''+p.id+'\')"><i class="ti ti-edit"></i> Editar</button><button class="btn bg bsm" style="color:var(--red)" onclick="delProjeto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></div>';
   }).join('');
 }
 
@@ -3101,6 +3104,14 @@ function abrirDetalheProjeto(id){
   var todos=saidasP.concat(devP);
   todos.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   document.getElementById('mpd-title').textContent='Movimentações — '+p.nome+(p.num?' ('+p.num+')':'');
+  var pepBar=document.getElementById('mpd-pep-bar');
+  if(p.pep){
+    pepBar.style.display='flex';
+    pepBar.innerHTML='<div style="background:var(--teal)15;border:1px solid var(--teal)40;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--teal);width:100%"><i class="ti ti-robot"></i> <strong>PEP: '+p.pep+'</strong> — este projeto está pronto para a automação com o SAP</div>';
+  } else {
+    pepBar.style.display='flex';
+    pepBar.innerHTML='<div style="background:var(--amber)15;border:1px solid var(--amber)40;border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:8px;font-size:13px;color:var(--amber);width:100%"><i class="ti ti-robot-off"></i> <strong>Sem PEP cadastrado</strong> — este projeto é ignorado pela automação até a reserva existir no SAP. <button class="btn bg bsm" style="margin-left:auto" onclick="closeModal(\'modal-projeto-detalhe\');editProjeto(\''+p.id+'\')">Preencher PEP</button></div>';
+  }
   setDetalheHeaders(['Data','Material','Qtd.','Equipe','Tipo','Responsável','Status SAP']);
   var statusMap=calcStatusParaLista(todos);
   var tb=document.getElementById('pd-saidas-body');
@@ -3124,6 +3135,7 @@ function abrirDetalheEquipe(id){
   var s=db.saidas.filter(function(x){return x.equipe===id;});
   s.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   document.getElementById('mpd-title').textContent='Retiradas — '+e.nome;
+  document.getElementById('mpd-pep-bar').style.display='none';
   setDetalheHeaders(['Data','Material','Qtd.','Projeto','Tipo','Responsável']);
   var tb=document.getElementById('pd-saidas-body');
   if(!s.length){tb.innerHTML='<tr><td colspan="6"><div class="es-sm">Nenhuma retirada registrada para esta equipe ainda.</div></td></tr>';}
@@ -3144,6 +3156,7 @@ function abrirDetalheProduto(id){
   var todos=s.concat(e);
   todos.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
   document.getElementById('mpd-title').textContent='Histórico — '+p.nome;
+  document.getElementById('mpd-pep-bar').style.display='none';
   setDetalheHeaders(['Data','Movimento','Qtd.','Projeto / Origem','Responsável']);
   var tb=document.getElementById('pd-saidas-body');
   if(!todos.length){tb.innerHTML='<tr><td colspan="5"><div class="es-sm">Nenhuma movimentação registrada para este produto ainda.</div></td></tr>';}
@@ -3162,7 +3175,7 @@ function abrirDetalheProduto(id){
 function salvarProjeto(){
   var nome=document.getElementById('mproj-nome').value.trim();if(!nome){toast('Informe o nome!','error');return;}
   var id=document.getElementById('mproj-id').value;
-  var data={nome:nome,codigo:document.getElementById('mproj-cod').value,num:document.getElementById('mproj-num').value,status:document.getElementById('mproj-status').value,inicio:document.getElementById('mproj-ini').value,fim:document.getElementById('mproj-fim').value,desc:document.getElementById('mproj-desc').value};
+  var data={nome:nome,codigo:document.getElementById('mproj-cod').value,num:document.getElementById('mproj-num').value,pep:document.getElementById('mproj-pep').value.trim(),status:document.getElementById('mproj-status').value,inicio:document.getElementById('mproj-ini').value,fim:document.getElementById('mproj-fim').value,desc:document.getElementById('mproj-desc').value};
   if(id){fsUpdate('projetos',id,data);toast('Projeto atualizado!','success');}
   else{fsSave('projetos',Object.assign({id:genId()},data));toast('Projeto criado!','success');}
   closeModal('modal-projeto');
@@ -3176,6 +3189,7 @@ function editProjeto(id){
   document.getElementById('mproj-nome').value=p.nome;
   document.getElementById('mproj-cod').value=p.codigo||'';
   document.getElementById('mproj-num').value=p.num||'';
+  document.getElementById('mproj-pep').value=p.pep||'';
   document.getElementById('mproj-status').value=p.status;
   document.getElementById('mproj-ini').value=p.inicio||'';
   document.getElementById('mproj-fim').value=p.fim||'';
@@ -3445,6 +3459,20 @@ function exportEntradasCSV(){
 function exportProjetosCSV(){
   var rows=db.projetos.map(function(p){var s=db.saidas.filter(function(x){return x.projetoTxt===p.nome||(p.num&&x.projetoTxt&&x.projetoTxt.indexOf(p.num)>=0);});return[p.nome,p.codigo||'',p.num||'',p.status||'',fmtDate(p.inicio),fmtDate(p.fim),s.length,s.reduce(function(a,b){return a+b.qty;},0)];});
   baixarCSV('kflow-projetos.csv',['Nome','Código','Nº Equatorial','Status','Início','Término Previsto','Qtd Retiradas','Total Itens'],rows);
+}
+// Gera o arquivo de entrada que o robô de automação SAP (Botão 1) vai ler: um PEP por linha,
+// só de projetos ativos que já têm o campo PEP preenchido. Projetos sem PEP são ignorados de
+// propósito, porque a reserva pode ainda não existir no SAP.
+function exportPepsRobo(){
+  var peps=db.projetos.filter(function(p){return p.pep && p.pep.trim() && p.status!=='concluido';}).map(function(p){return p.pep.trim();});
+  var uniq=Array.from(new Set(peps));
+  if(!uniq.length){toast('Nenhum projeto com PEP preenchido ainda','error');return;}
+  var txt=uniq.join('\r\n');
+  var a=document.createElement('a');
+  a.href='data:text/plain;charset=utf-8,\uFEFF'+encodeURIComponent(txt);
+  a.download='pep_list.txt';
+  a.click();
+  toast(uniq.length+' PEP(s) exportado(s) para o robô','success');
 }
 function exportReservasCSV(){
   var rows=db.reservas.map(function(r){var p=gP(r.produto);return[r.servico||'',r.pep||'',r.reserva||'',p?p.codigo:'',p?p.nome:'[Removido]',r.qtd,p?p.unidade:''];});
