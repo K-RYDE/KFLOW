@@ -1772,7 +1772,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
     </div>
 
     <div class="page" id="page-reservas">
-      <div class="ph"><div><div class="pt">Reservas SAP</div><div class="ps">Reserva extraída do SAP por serviço → PEP → nº de reserva. Usada para comparar com as saídas do KFLOW.</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportReservasCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bp" onclick="openModal('modal-reserva')"><i class="ti ti-plus"></i> Nova Reserva</button></div></div>
+      <div class="ph"><div><div class="pt">Reservas SAP</div><div class="ps">Reserva extraída do SAP por serviço → PEP → nº de reserva. Usada para comparar com as saídas do KFLOW.</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="openModal('modal-import-reservas')" title="Importa direto a planilha que o robô (CN52N) exportou"><i class="ti ti-file-upload"></i> Importar planilha SAP</button><button class="btn bg" onclick="exportReservasCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bp" onclick="openModal('modal-reserva')"><i class="ti ti-plus"></i> Nova Reserva</button></div></div>
       <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Nº Serviço</th><th>PEP</th><th>Nº Reserva</th><th>Produto</th><th>Qtd. Reservada</th><th></th></tr></thead><tbody id="reservas-body"></tbody></table></div></div></div>
     </div>
 
@@ -2083,6 +2083,28 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
   <div class="mf">
     <button class="btn bg" onclick="closeModal('modal-import')">Cancelar</button>
     <button class="btn bp hidden" id="import-btn" onclick="confirmarImport()"><i class="ti ti-file-import"></i> Importar Produtos</button>
+  </div>
+</div>
+</div>
+
+<div class="mo" id="modal-import-reservas">
+<div class="modal" style="max-width:760px">
+  <div class="mh"><span class="mt">Importar planilha do SAP (CN52N)</span><button class="xb" onclick="closeModal('modal-import-reservas')">&times;</button></div>
+  <div class="mb">
+    <div class="uz" id="upload-zone-reservas" onclick="document.getElementById('excel-input-reservas').click()" ondragover="event.preventDefault()" ondrop="handleDropReservas(event)">
+      <i class="ti ti-file-spreadsheet"></i>
+      <div style="font-weight:600;margin-bottom:6px">Clique para selecionar ou arraste o arquivo exportado do SAP</div>
+      <div style="font-size:12px;color:var(--text2)">O arquivo que o robô (Botão 1) gera a partir do CN52N — colunas Reserva, WBS element, Material, Qtd.em falta</div>
+    </div>
+    <input type="file" id="excel-input-reservas" accept=".xlsx,.xls" class="hidden" onchange="handleReservaExcelFile(this.files[0])">
+    <div id="import-reservas-preview" class="hidden" style="margin-top:20px">
+      <div style="font-weight:600;margin-bottom:10px" id="import-reservas-count"></div>
+      <div style="max-height:280px;overflow-y:auto"><table style="font-size:12px"><thead><tr><th>PEP</th><th>Projeto</th><th>Material</th><th>Qtd. em falta</th><th>Status</th></tr></thead><tbody id="import-reservas-tbody"></tbody></table></div>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn bg" onclick="closeModal('modal-import-reservas')">Cancelar</button>
+    <button class="btn bp hidden" id="import-reservas-btn" onclick="confirmarImportReservas()"><i class="ti ti-file-import"></i> Importar Reservas</button>
   </div>
 </div>
 </div>
@@ -3583,6 +3605,89 @@ function confirmarImport(){
   });
   closeModal('modal-import');toast('Importado: '+novos+' novos, '+atualizados+' atualizados!','success');
   setTimeout(function(){navigate('estoque');},300);
+}
+
+function handleDropReservas(e){e.preventDefault();var f=e.dataTransfer.files[0];if(f)handleReservaExcelFile(f);}
+
+// Lê a planilha exportada pelo robô (Botão 1, via CN52N) e monta a pré-visualização,
+// já casando PEP -> projeto do KFLOW e Material -> produto do KFLOW.
+var importReservasData=[];
+function handleReservaExcelFile(file){
+  if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var wb=XLSX.read(e.target.result,{type:'array'});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    if(rows.length<2){toast('Planilha vazia!','error');return;}
+    var header=rows[0].map(function(h){return String(h).toLowerCase().trim();});
+    var colReserva=-1,colPep=-1,colMaterial=-1,colFalta=-1;
+    for(var k=0;k<header.length;k++){
+      var h=header[k];
+      if(colReserva===-1 && h.indexOf('reserva')>=0)colReserva=k;
+      if(colPep===-1 && (h.indexOf('wbs')>=0 || h.indexOf('pep')>=0))colPep=k;
+      if(colMaterial===-1 && h.indexOf('material')>=0 && h.indexOf('texto')<0)colMaterial=k;
+      if(colFalta===-1 && h.indexOf('falta')>=0)colFalta=k;
+    }
+    if(colPep===-1 || colMaterial===-1 || colFalta===-1){
+      toast('Não encontrei as colunas esperadas (WBS element, Material, Qtd.em falta). Confira a planilha.','error');
+      return;
+    }
+    importReservasData=[];
+    for(var i=1;i<rows.length;i++){
+      var r=rows[i];
+      var pep=String(r[colPep]||'').trim();
+      var materialCod=String(r[colMaterial]||'').trim();
+      if(!pep || !materialCod)continue;
+      var reserva=colReserva>=0?String(r[colReserva]||'').trim():'';
+      var qtd=parseFloat(r[colFalta])||0;
+
+      var projeto=null;
+      for(var j=0;j<db.projetos.length;j++){if((db.projetos[j].pep||'').trim()===pep){projeto=db.projetos[j];break;}}
+      var produto=null;
+      for(var m=0;m<db.produtos.length;m++){if((db.produtos[m].codigo||'').trim()===materialCod){produto=db.produtos[m];break;}}
+
+      importReservasData.push({
+        pep:pep, reserva:reserva, materialCod:materialCod, qtd:qtd,
+        servico: projeto ? (projeto.num || projeto.nome) : '',
+        projetoNome: projeto ? projeto.nome : null,
+        produtoId: produto ? produto.id : null,
+        produtoNome: produto ? produto.nome : null
+      });
+    }
+    if(!importReservasData.length){toast('Nenhuma linha válida encontrada na planilha','error');return;}
+
+    document.getElementById('import-reservas-count').textContent=importReservasData.length+' linha(s) encontrada(s) na planilha';
+    document.getElementById('import-reservas-tbody').innerHTML=importReservasData.map(function(d){
+      var statusHtml;
+      if(!d.projetoNome) statusHtml='<span class="badge" style="background:var(--red)22;color:var(--red)">Projeto sem esse PEP no KFLOW</span>';
+      else if(!d.produtoId) statusHtml='<span class="badge" style="background:var(--amber)22;color:var(--amber)">Produto '+d.materialCod+' não cadastrado</span>';
+      else statusHtml='<span class="badge bg2">Pronto pra importar</span>';
+      return'<tr><td>'+d.pep+'</td><td>'+(d.projetoNome||'-')+'</td><td>'+(d.produtoNome||d.materialCod)+'</td><td>'+d.qtd+'</td><td>'+statusHtml+'</td></tr>';
+    }).join('');
+    document.getElementById('import-reservas-preview').classList.remove('hidden');
+    document.getElementById('import-reservas-btn').classList.remove('hidden');
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function confirmarImportReservas(){
+  var validos=importReservasData.filter(function(d){return d.projetoNome && d.produtoId;});
+  if(!validos.length){toast('Nenhuma linha pronta pra importar (confira PEP/produto)','error');return;}
+  var novos=0, atualizados=0;
+  validos.forEach(function(d){
+    var existente=null;
+    for(var i=0;i<db.reservas.length;i++){
+      var r=db.reservas[i];
+      if((r.servico||'').trim()===d.servico.trim() && (r.reserva||'').trim()===d.reserva.trim() && r.produto===d.produtoId){existente=r;break;}
+    }
+    if(existente){fsUpdate('reservas',existente.id,{qtd:d.qtd,pep:d.pep});atualizados++;}
+    else{fsSave('reservas',{id:genId(),servico:d.servico,pep:d.pep,reserva:d.reserva,produto:d.produtoId,qtd:d.qtd});novos++;}
+  });
+  var ignorados=importReservasData.length-validos.length;
+  closeModal('modal-import-reservas');
+  toast('Reservas: '+novos+' novas, '+atualizados+' atualizadas'+(ignorados?', '+ignorados+' ignoradas (PEP ou produto não encontrado)':''),'success');
+  setTimeout(function(){navigate('reservas');},300);
 }
 </script>
 <script>
