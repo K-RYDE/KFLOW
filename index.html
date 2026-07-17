@@ -2551,8 +2551,9 @@ function abrirModalEtiquetas(){
   });
 
   var lista = produtosOrdenados.map(function(p){
-    return '<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer">'
-      +'<input type="checkbox" value="'+p.id+'" style="width:18px;height:18px;accent-color:#4f8aff">'
+    return '<label class="etq-row" style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer;border-radius:8px;transition:background .1s"'
+      +' onclick="setTimeout(atualizarContadorEtq,0)">'
+      +'<input type="checkbox" value="'+p.id+'" onchange="toggleEtqRow(this)" style="width:20px;height:20px;accent-color:#4f8aff;flex-shrink:0">'
       +'<div><div style="font-size:13px;font-weight:600">'+p.nome+'</div>'
       +'<div style="font-size:11px;color:var(--text3)">'+p.codigo+'</div></div>'
       +'</label>';
@@ -2567,9 +2568,10 @@ function abrirModalEtiquetas(){
     '<div style="font-size:17px;font-weight:700">Selecionar Etiquetas para Imprimir</div>',
     '<button onclick="document.getElementById(\'modal-etiquetas\').remove()" style="background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer">×</button>',
     '</div>',
-    '<div style="display:flex;gap:8px;margin-bottom:12px">',
+    '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">',
     '<button onclick="selecionarTodasEtq(true)" class="btn bg bsm">Selecionar Todas</button>',
     '<button onclick="selecionarTodasEtq(false)" class="btn bg bsm">Limpar</button>',
+    '<div id="etq-contador" style="margin-left:auto;font-size:13px;font-weight:700;color:#4f8aff;background:rgba(79,138,255,.12);border:1px solid rgba(79,138,255,.35);border-radius:20px;padding:5px 14px">0 selecionado(s)</div>',
     '</div>',
     '<div style="margin-bottom:10px;position:relative"><input type="text" id="etq-busca" placeholder="🔍 Buscar por código ou descrição..." oninput="filtrarEtiquetas()" style="width:100%;background:var(--bg3);border:1px solid rgba(255,255,255,.15);border-radius:9px;color:var(--text);font-size:14px;padding:10px 14px;outline:none"></div>',
     '<div style="overflow-y:auto;flex:1;padding-right:4px" id="etq-lista">'+lista+'</div>',
@@ -2581,6 +2583,20 @@ function abrirModalEtiquetas(){
   document.body.appendChild(m);
 }
 
+// Destaca visualmente a linha (fundo azul + negrito) quando marcada, pra nunca
+// ficar em dúvida se o clique realmente selecionou o item ou não.
+window.toggleEtqRow = function(cb){
+  var row = cb.closest('.etq-row');
+  if(row) row.style.background = cb.checked ? 'rgba(79,138,255,.16)' : 'transparent';
+  atualizarContadorEtq();
+};
+window.atualizarContadorEtq = function(){
+  var el = document.getElementById('etq-contador');
+  if(!el) return;
+  var n = document.querySelectorAll('#etq-lista input[type=checkbox]:checked').length;
+  el.textContent = n+' selecionado(s)';
+};
+
 window.filtrarEtiquetas = function(){
   var termo = (document.getElementById('etq-busca')||{}).value||'';
   termo = termo.toLowerCase().trim();
@@ -2591,19 +2607,32 @@ window.filtrarEtiquetas = function(){
     return (p.codigo||'').toLowerCase().includes(termo) || (p.nome||'').toLowerCase().includes(termo);
   }) : produtosOrdenados;
 
+  // Preserva quais IDs já estavam marcados antes de filtrar, pra não perder a
+  // seleção de itens que saem de vista ao digitar na busca.
+  var marcadosAntes = {};
+  document.querySelectorAll('#etq-lista input[type=checkbox]:checked').forEach(function(cb){ marcadosAntes[cb.value]=true; });
+
   var lista = filtrados.map(function(p){
-    return '<label style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer">'
-      +'<input type="checkbox" value="'+p.id+'" style="width:18px;height:18px;accent-color:#4f8aff">'
+    var marcado = marcadosAntes[p.id] ? ' checked' : '';
+    return '<label class="etq-row" style="display:flex;align-items:center;gap:10px;padding:10px 8px;border-bottom:1px solid rgba(255,255,255,.07);cursor:pointer;border-radius:8px;background:'+(marcadosAntes[p.id]?'rgba(79,138,255,.16)':'transparent')+'"'
+      +' onclick="setTimeout(atualizarContadorEtq,0)">'
+      +'<input type="checkbox" value="'+p.id+'" onchange="toggleEtqRow(this)" style="width:20px;height:20px;accent-color:#4f8aff;flex-shrink:0"'+marcado+'>'
       +'<div><div style="font-size:13px;font-weight:600">'+p.nome+'</div>'
       +'<div style="font-size:11px;color:var(--text3)">'+p.codigo+'</div></div>'
       +'</label>';
   }).join('') || '<div style="padding:20px;text-align:center;color:var(--text3)">Nenhum produto encontrado</div>';
 
   document.getElementById('etq-lista').innerHTML = lista;
+  atualizarContadorEtq();
 };
 
 window.selecionarTodasEtq = function(val){
-  document.querySelectorAll('#etq-lista input[type=checkbox]').forEach(function(cb){ cb.checked=val; });
+  document.querySelectorAll('#etq-lista input[type=checkbox]').forEach(function(cb){
+    cb.checked=val;
+    var row = cb.closest('.etq-row');
+    if(row) row.style.background = val ? 'rgba(79,138,255,.16)' : 'transparent';
+  });
+  atualizarContadorEtq();
 };
 
 window.imprimirEtiquetasSelecionadas = async function(){
@@ -2800,40 +2829,6 @@ function renderQRGrid(search){
 }
 function filterQRGrid(val){renderQRGrid(val);}
 
-function getEtiquetaCSS(){
-  return [
-    '@page{size:A4;margin:10mm}',
-    '*{box-sizing:border-box;margin:0;padding:0}',
-    'body{font-family:Arial,sans-serif;background:#fff}',
-    '.pagina{display:grid;grid-template-columns:1fr 1fr;gap:8mm;padding:4mm}',
-    '.etiqueta{border:1.5px solid #222;border-radius:4px;overflow:hidden;page-break-inside:avoid;background:#fff;height:130mm}',
-    '.et-header{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 5px;border-bottom:1px solid #ccc;gap:6px}',
-    '.et-logo{height:32px;width:auto;object-fit:contain}',
-    '.et-center-title{text-align:center;font-size:12px;font-weight:700;color:#0A4D4D;flex:1}',
-    '.et-qr{border:1px solid #eee;border-radius:3px;background:#fff}',
-    '.et-codigo{text-align:center;font-size:16px;font-weight:700;letter-spacing:1px;padding:6px 8px;border-bottom:1px solid #ccc;background:#f8f8f8}',
-    '.et-nome{text-align:center;font-size:13px;font-weight:700;padding:10px 8px;border-bottom:1px solid #ccc;min-height:44px;display:flex;align-items:center;justify-content:center;line-height:1.3}',
-    '.et-row{padding:7px 8px;border-bottom:1px solid #eee;font-size:11px}',
-    '.et-row2{display:grid;grid-template-columns:1fr 1fr 1fr;padding:7px 8px;font-size:11px;gap:4px}',
-    '.et-label{font-weight:700;color:#333}',
-    '.et-field{font-size:11px;color:#222}',
-    '@media print{body{margin:0}.pagina{gap:6mm;padding:2mm}}'
-  ].join(' ');
-}
-
-function imprimirTodosQR(){
-  if(!db.produtos.length){toast('Nenhum produto para imprimir','error');return;}
-  var css = getEtiquetaStyle();
-  var w = window.open('','_blank');
-  var parts = ['<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiquetas KFLOW</title><style>'+css+'</style></head><body><div class="etq-pagina">'];
-  db.produtos.forEach(function(p){
-    var qrSrc = QRCode.toImgUrl(getProductScanURL(p.id), 120);
-    parts.push(gerarEtiquetaEquatorial(p, qrSrc, _EQ_B64, _VM_B64));
-  });
-  parts.push('</div><scr'+'ipt>window.onload=function(){window.print();}<'+'/scr'+'ipt></body></html>');
-  w.document.write(parts.join(''));
-  w.document.close();
-}
 </script>
 <script>
 function renderEntradas(){
