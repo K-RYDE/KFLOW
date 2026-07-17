@@ -1681,6 +1681,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
     <div class="ni" role="button" tabindex="0" onclick="navigate('categorias')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('categorias')"><i class="ti ti-tags" aria-hidden="true"></i> Categorias</div>
     <div class="ns" id="nav-admin-section">Admin</div>
     <div class="ni" id="nav-usuarios" role="button" tabindex="0" onclick="navigate('usuarios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('usuarios')"><i class="ti ti-user-cog" aria-hidden="true"></i> Usuários</div>
+    <div class="ni" id="nav-auditoria" role="button" tabindex="0" onclick="navigate('auditoria')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('auditoria')"><i class="ti ti-shield-check" aria-hidden="true"></i> Auditoria</div>
     <div class="ni" role="button" tabindex="0" onclick="navigate('relatorios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('relatorios')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Relatórios</div>
     <div class="ni" role="button" tabindex="0" onclick="navigate('alertas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('alertas')"><i class="ti ti-bell" aria-hidden="true"></i> Alertas <span class="nbadge" id="alert-badge">0</span></div>
   </nav>
@@ -1696,6 +1697,8 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
   <header class="hdr" role="banner">
     <div class="hdr-t" id="header-title">Dashboard</div>
     <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
+    <div id="conn-status" title="Online" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 6px currentColor;transition:background .3s"></div>
+    <div id="offline-badge" onclick="verFilaOffline()" title="Itens aguardando sincronização" style="display:none;align-items:center;gap:5px;background:var(--amber)22;border:1px solid var(--amber)55;color:var(--amber);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;cursor:pointer"><i class="ti ti-wifi-off"></i><span id="offline-count">0</span> offline</div>
     <div class="hsrch"><i class="ti ti-search"></i><input type="text" placeholder="Buscar produtos..." id="global-search" oninput="globalSearch(this.value)"></div>
     <button class="btn bp" id="header-action-btn" onclick="headerAction()"><i class="ti ti-plus"></i> Nova Entrada</button>
   </header>
@@ -1719,6 +1722,17 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
         </div>
       </div>
       <div class="card"><div class="ch"><span class="ct">Produtos com Estoque Crítico</span></div><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Produto</th><th>Qtd. Atual</th><th>Mínimo</th><th>Status</th><th>Ação</th></tr></thead><tbody id="dash-low-body"></tbody></table></div></div></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+        <div class="card">
+          <div class="ch"><span class="ct"><i class="ti ti-robot" style="color:var(--teal)"></i> Saúde SAP — Projetos ativos</span><button class="btn bg bsm" onclick="navigate('projetos')">Ver todos</button></div>
+          <div class="cb" id="dash-sap-saude" style="padding:0 20px 16px"></div>
+        </div>
+        <div class="card">
+          <div class="ch"><span class="ct"><i class="ti ti-clock-exclamation" style="color:var(--amber)"></i> Pendências de reconciliação</span></div>
+          <div class="cb" id="dash-sap-pendencias" style="padding:0 20px 16px"></div>
+        </div>
+      </div>
     </div>
 
     <div class="page" id="page-estoque">
@@ -1798,6 +1812,28 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
         <div class="card"><div class="ch"><span class="ct">Saídas por Tipo</span></div><div class="cb" id="rel-tipos"></div></div>
       </div>
       <div class="card"><div class="ch"><span class="ct">Top Produtos Mais Movimentados</span></div><div class="cb" id="rel-top"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px">
+        <div class="card"><div class="ch"><span class="ct">Saídas por Responsável</span></div><div class="cb" id="rel-resp"></div></div>
+        <div class="card"><div class="ch"><span class="ct">Saídas por Equipe</span></div><div class="cb" id="rel-equipe"></div></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-auditoria">
+      <div class="ph"><div><div class="pt">Log de Auditoria</div><div class="ps">Histórico de ações: quem criou, editou ou excluiu registros e quando</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportAuditoriaCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button></div></div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+        <select id="aud-filtro-tipo" onchange="renderAuditoria()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;font-family:inherit">
+          <option value="">Todos os tipos</option>
+          <option value="saida">Saída</option>
+          <option value="entrada">Entrada</option>
+          <option value="produto">Produto</option>
+          <option value="projeto">Projeto</option>
+          <option value="reserva">Reserva</option>
+        </select>
+        <input type="date" id="aud-filtro-ini" onchange="renderAuditoria()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px">
+        <input type="date" id="aud-filtro-fim" onchange="renderAuditoria()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px">
+        <button class="btn bg bsm" onclick="limparFiltrosAuditoria()"><i class="ti ti-x"></i> Limpar</button>
+      </div>
+      <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Data/Hora</th><th>Ação</th><th>Tipo</th><th>Descrição</th><th>Usuário</th></tr></thead><tbody id="auditoria-body"></tbody></table></div></div></div>
     </div>
 
     <div class="page" id="page-alertas">
@@ -2123,11 +2159,11 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var dbf = firebase.firestore();
 
-var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[],reservas:[]};
+var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[],reservas:[],auditoria:[]};
 var currentUser=null;
 var importData=[];
 var selectedTipo='';
-var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios','reservas'];
+var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios','reservas','auditoria'];
 var unsubs=[];
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
@@ -2160,7 +2196,7 @@ function setSyncStatus(ok){
 
 // Carrega tudo do Firestore e mantem em tempo real
 function initFirestoreSync(callback){
-  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false,reservas:false};
+  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false,reservas:false,auditoria:false};
   function checkAllLoaded(){
     if(Object.values(loaded).every(function(v){return v;})){
       callback();
@@ -2174,7 +2210,7 @@ function initFirestoreSync(callback){
       setSyncStatus(true);
       loaded[col]=true;
       checkAllLoaded();
-      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&loaded.reservas&&window._appStarted){
+      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&loaded.reservas&&loaded.auditoria&&window._appStarted){
         if(typeof renderPage==='function')renderPage(currentPage);
       }
     },function(err){
@@ -2260,10 +2296,12 @@ function applyUserUI(found){
   if(found.perfil!=='admin'){
     document.getElementById('nav-admin-section').classList.add('hidden');
     document.getElementById('nav-usuarios').classList.add('hidden');
+    document.getElementById('nav-auditoria').classList.add('hidden');
     document.getElementById('mmp-usuarios').classList.add('hidden');
   }else{
     document.getElementById('nav-admin-section').classList.remove('hidden');
     document.getElementById('nav-usuarios').classList.remove('hidden');
+    document.getElementById('nav-auditoria').classList.remove('hidden');
     document.getElementById('mmp-usuarios').classList.remove('hidden');
   }
 }
@@ -2325,6 +2363,7 @@ var pageCfg={
   equipes:{title:'Equipes',action:'Nova Equipe',actionFn:function(){openModal('modal-equipe');}},
   categorias:{title:'Categorias',action:'Nova Categoria',actionFn:function(){openModal('modal-categoria');}},
   usuarios:{title:'Usuários',action:'Novo Usuário',actionFn:function(){openModal('modal-usuario');}},
+  auditoria:{title:'Log de Auditoria',action:null},
   relatorios:{title:'Relatórios',action:null},
   alertas:{title:'Alertas',action:null}
 };
@@ -2373,11 +2412,69 @@ function renderPage(page){
   else if(page==='equipes')renderEquipes();
   else if(page==='categorias')renderCategorias();
   else if(page==='usuarios')renderUsuarios();
+  else if(page==='auditoria')renderAuditoria();
   else if(page==='relatorios')renderRelatorios();
   else if(page==='alertas')renderAlertas();
 }
 </script>
 <script>
+// ===================== AUDITORIA =====================
+// Grava um evento no log de auditoria. Chamado sempre que uma ação
+// relevante acontece (criar, editar, excluir qualquer registro).
+function logAuditoria(acao, tipo, descricao){
+  var usuario = currentUser ? currentUser.nome : 'Sistema';
+  var agora = new Date();
+  fsSave('auditoria',{
+    id: genId(),
+    acao: acao,        // 'criar' | 'editar' | 'excluir' | 'importar' | 'escanear'
+    tipo: tipo,        // 'saida' | 'entrada' | 'produto' | 'projeto' | 'reserva' | ...
+    descricao: descricao,
+    usuario: usuario,
+    ts: agora.toISOString(),
+    data: agora.toISOString().split('T')[0]
+  });
+}
+function renderAuditoria(){
+  var tb = document.getElementById('auditoria-body');
+  if(!tb) return;
+  var tipo = (document.getElementById('aud-filtro-tipo')||{}).value || '';
+  var ini  = (document.getElementById('aud-filtro-ini')||{}).value  || '';
+  var fim  = (document.getElementById('aud-filtro-fim')||{}).value  || '';
+  var lista = db.auditoria.slice().sort(function(a,b){return (b.ts||'').localeCompare(a.ts||'');});
+  if(tipo) lista = lista.filter(function(l){return l.tipo===tipo;});
+  if(ini)  lista = lista.filter(function(l){return l.data>=ini;});
+  if(fim)  lista = lista.filter(function(l){return l.data<=fim;});
+  if(!lista.length){
+    tb.innerHTML='<tr><td colspan="5"><div class="es"><i class="ti ti-shield-check"></i><div class="es-t">Nenhum evento registrado</div><div class="es-s">As ações realizadas no sistema aparecerão aqui.</div></div></td></tr>';
+    return;
+  }
+  var acaoIcon={'criar':'ti-plus','editar':'ti-edit','excluir':'ti-trash','importar':'ti-file-import','escanear':'ti-qrcode'};
+  var acaoCor={'criar':'var(--green)','editar':'var(--accent)','excluir':'var(--red)','importar':'var(--teal)','escanear':'var(--purple)'};
+  tb.innerHTML = lista.slice(0,200).map(function(l){
+    var ic = acaoIcon[l.acao]||'ti-circle';
+    var cor = acaoCor[l.acao]||'var(--text3)';
+    var hora = l.ts ? l.ts.replace('T',' ').substr(0,16) : fmtDate(l.data);
+    return'<tr><td style="font-size:11px;color:var(--text3);white-space:nowrap">'+hora+'</td>'
+      +'<td><span class="badge" style="background:'+cor+'22;color:'+cor+'"><i class="ti '+ic+'"></i> '+l.acao+'</span></td>'
+      +'<td><span class="badge bb">'+l.tipo+'</span></td>'
+      +'<td style="font-size:12px">'+l.descricao+'</td>'
+      +'<td style="font-size:12px;color:var(--text2)">'+l.usuario+'</td></tr>';
+  }).join('');
+  if(lista.length>200) tb.innerHTML+='<tr><td colspan="5" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Mostrando os 200 mais recentes de '+lista.length+' total</td></tr>';
+}
+function limparFiltrosAuditoria(){
+  ['aud-filtro-tipo','aud-filtro-ini','aud-filtro-fim'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  renderAuditoria();
+}
+function exportAuditoriaCSV(){
+  var rows=db.auditoria.slice().sort(function(a,b){return (b.ts||'').localeCompare(a.ts||'');}).map(function(l){
+    return[l.ts?l.ts.replace('T',' ').substr(0,16):l.data,l.acao,l.tipo,l.descricao,l.usuario];
+  });
+  baixarCSV('kflow-auditoria.csv',['Data/Hora','Ação','Tipo','Descrição','Usuário'],rows);
+}
+
 function renderDashboard(){
   var totalQty=db.produtos.length; // número de produtos cadastrados
   var mes=today().substr(0,7);
@@ -2403,6 +2500,40 @@ function renderDashboard(){
     var p=gP(m.produto);var isE=m.tipo==='E';
     return'<div class="ai"><div class="aic" style="background:'+(isE?'rgba(34,197,94,.12)':'rgba(239,68,68,.12)')+';color:'+(isE?'var(--green)':'var(--red)')+'"><i class="ti ti-'+(isE?'package-import':'package-export')+'"></i></div><div class="ain"><div class="ait">'+(isE?'Entrada':'Saída')+': '+(p?p.nome:'[Removido]')+'</div><div class="ais">'+m.qty+' '+(p?p.unidade:'un')+' &bull; '+(isE?(m.forn||'-'):(m.projetoTxt||'-'))+'</div></div><div class="atime">'+fmtDate(m.data)+'</div></div>';
   }).join('')||'<div style="padding:20px;text-align:center;color:var(--text3)">Sem movimentações ainda</div>';
+  // ─── Saúde SAP ───────────────────────────────────────────────────────────
+  var projAtivos = db.projetos.filter(function(p){return p.status!=='liquidado';});
+  var comPep     = projAtivos.filter(function(p){return p.pep && p.pep.trim();}).length;
+  var semPep     = projAtivos.length - comPep;
+  var sapEl = document.getElementById('dash-sap-saude');
+  if(sapEl) sapEl.innerHTML = projAtivos.length
+    ? '<div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">'
+        +'<div style="text-align:center"><div style="font-size:28px;font-weight:700;color:var(--teal)">'+comPep+'</div><div style="font-size:11px;color:var(--text3)">com PEP (prontos)</div></div>'
+        +'<div style="text-align:center"><div style="font-size:28px;font-weight:700;color:var(--amber)">'+semPep+'</div><div style="font-size:11px;color:var(--text3)">sem PEP (ignorados)</div></div>'
+        +'<div style="text-align:center"><div style="font-size:28px;font-weight:700;color:var(--text2)">'+projAtivos.length+'</div><div style="font-size:11px;color:var(--text3)">projetos ativos total</div></div>'
+      +'</div>'
+    : '<div class="es-sm">Nenhum projeto ativo.</div>';
+
+  // ─── Pendências de reconciliação SAP ─────────────────────────────────────
+  var pendEl = document.getElementById('dash-sap-pendencias');
+  if(pendEl && db.reservas.length){
+    var statusGlobal={consumir:0,adicionar:0,parcial:0,naoenc:0};
+    db.projetos.filter(function(p){return p.pep&&p.pep.trim()&&p.status!=='liquidado';}).forEach(function(p){
+      var servico = p.num || p.nome;
+      var st = calcStatusSap(servico);
+      Object.values(st).forEach(function(v){if(statusGlobal[v.status]!==undefined)statusGlobal[v.status]++;});
+    });
+    var total=statusGlobal.consumir+statusGlobal.adicionar+statusGlobal.parcial+statusGlobal.naoenc;
+    pendEl.innerHTML = total
+      ? '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap">'
+          +(statusGlobal.consumir?'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--teal)">'+statusGlobal.consumir+'</div><div style="font-size:10px;color:var(--text3)">consumir</div></div>':'')
+          +(statusGlobal.parcial?'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--purple)">'+statusGlobal.parcial+'</div><div style="font-size:10px;color:var(--text3)">parcial</div></div>':'')
+          +(statusGlobal.adicionar?'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--amber)">'+statusGlobal.adicionar+'</div><div style="font-size:10px;color:var(--text3)">adicionar</div></div>':'')
+          +(statusGlobal.naoenc?'<div style="text-align:center"><div style="font-size:24px;font-weight:700;color:var(--red)">'+statusGlobal.naoenc+'</div><div style="font-size:10px;color:var(--text3)">sem reserva</div></div>':'')
+        +'</div>'
+      : '<div class="es-sm">Nenhuma pendência — reserve e saída estão em dia.</div>';
+  } else if(pendEl){
+    pendEl.innerHTML='<div class="es-sm" style="color:var(--text3)">Sem reservas SAP cadastradas ainda.</div>';
+  }
   var low=db.produtos.filter(function(p){return p.qty<=p.min;});
   document.getElementById('dash-low-body').innerHTML=low.map(function(p){
     return'<tr><td><strong>'+p.nome+'</strong><br><span style="font-size:11px;color:var(--text3)">'+p.codigo+'</span></td><td><span style="font-size:18px;font-weight:700;color:'+stockColor(p)+'">'+p.qty+'</span> '+p.unidade+'</td><td>'+p.min+' '+p.unidade+'</td><td>'+statusBadge(p)+'</td><td>'+(canEdit()?'<button class="btn bg bsm" onclick="openRepor(\''+p.id+'\')"><i class="ti ti-package-import"></i> Repor</button>':'')+'</td></tr>';
@@ -2912,6 +3043,7 @@ function salvarSaida(){
   fsUpdate('produtos',pid,{qty:novaQty});
   fsSave('saidas',{id:genId(),produto:pid,qty:qty,data:data,projetoTxt:projTxt,equipe:eq,tipoServ:selectedTipo,resp:resp,obs:document.getElementById('sai-obs').value});
   registrarProjetoAutomatico(projTxt, eq, resp, [{nome:p.nome,qty:qty}], data);
+  logAuditoria('criar','saida','Saída de '+qty+' '+p.unidade+' de "'+p.nome+'" → projeto '+projTxt);
   closeModal('modal-saida');selectedTipo='';
   document.querySelectorAll('.ro').forEach(function(r){r.classList.remove('sel');});
   toast('Saída de '+qty+' '+p.unidade+' registrada!','success');
@@ -2937,6 +3069,7 @@ async function delMov(tipo,id){
     fsUpdate('produtos',p.id,{qty:novaQty});
   }
   fsDelete(col,id);
+  logAuditoria('excluir',tipo,'Registro de '+tipo+' removido'+(reverter?' (estoque ajustado)':''));
   toast('Registro removido'+(reverter?' e estoque ajustado':''),'info');
 }
 
@@ -3545,6 +3678,26 @@ function renderRelatorios(){
   document.getElementById('rel-tipos').innerHTML=ts.map(function(t){return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+t.nome+'</span><strong>'+t.qty+'</strong></div><div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.round((t.qty/maxT)*100)+'%;background:'+t.c+';border-radius:4px"></div></div></div>';}).join('');
   var prods=db.produtos.map(function(p){return{p:p,total:db.saidas.filter(function(s){return s.produto===p.id;}).reduce(function(a,b){return a+b.qty;},0)};}).sort(function(a,b){return b.total-a.total;}).slice(0,5);
   document.getElementById('rel-top').innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px">'+prods.map(function(x){return'<div style="background:var(--bg3);border-radius:10px;padding:16px;text-align:center"><div style="font-size:24px;font-weight:700;color:var(--accent)">'+x.total+'</div><div style="font-size:12px;font-weight:600;margin:6px 0 2px">'+x.p.nome+'</div><div style="font-size:11px;color:var(--text3)">'+x.p.unidade+'</div></div>';}).join('')+'</div>';
+
+  // Relatório por responsável
+  var respMap={};
+  db.saidas.forEach(function(s){var r=s.resp||'Não informado';respMap[r]=(respMap[r]||0)+s.qty;});
+  var resps=Object.keys(respMap).map(function(k){return{nome:k,qty:respMap[k]};}).sort(function(a,b){return b.qty-a.qty;}).slice(0,10);
+  var maxR=Math.max(1,resps.reduce(function(a,b){return Math.max(a,b.qty);},0));
+  var relResp=document.getElementById('rel-resp');
+  if(relResp) relResp.innerHTML=resps.map(function(r){
+    return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+r.nome+'</span><strong>'+r.qty+'</strong></div><div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.round((r.qty/maxR)*100)+'%;background:var(--purple);border-radius:4px"></div></div></div>';
+  }).join('')||'<p style="color:var(--text3)">Sem dados</p>';
+
+  // Relatório por equipe
+  var eqMap={};
+  db.saidas.forEach(function(s){var eq=gEq(s.equipe);var k=eq?eq.nome:'Sem equipe';eqMap[k]=(eqMap[k]||0)+s.qty;});
+  var eqs=Object.keys(eqMap).map(function(k){return{nome:k,qty:eqMap[k]};}).sort(function(a,b){return b.qty-a.qty;});
+  var maxE=Math.max(1,eqs.reduce(function(a,b){return Math.max(a,b.qty);},0));
+  var relEq=document.getElementById('rel-equipe');
+  if(relEq) relEq.innerHTML=eqs.map(function(e){
+    return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+e.nome+'</span><strong>'+e.qty+'</strong></div><div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.round((e.qty/maxE)*100)+'%;background:var(--teal);border-radius:4px"></div></div></div>';
+  }).join('')||'<p style="color:var(--text3)">Sem dados</p>';
 }
 
 function renderAlertas(){
@@ -3769,6 +3922,17 @@ function exportReservasCSV(){
 }
 
 function globalSearch(val){if(!val)return;navigate('estoque');setTimeout(function(){filterEstoque(val);},50);}
+
+function verFilaOffline(){
+  var q=getOfflineQueue();
+  if(!q.length){toast('Nenhum item na fila offline','info');return;}
+  var msg='Itens na fila offline ('+q.length+'):\n'+q.map(function(i){return'• '+i.descricao;}).join('\n');
+  if(navigator.onLine){
+    tentarSincronizarOffline();
+  } else {
+    alert(msg+'\n\nOs itens serão enviados automaticamente quando a conexão voltar.');
+  }
+}
 
 // Modal de confirmação customizado (substitui o confirm() nativo do navegador)
 // Heurística de Nielsen: Consistência e Padrões + Estética Minimalista
@@ -4316,6 +4480,33 @@ window.finScan = function(){
   var dt = new Date().toISOString().split('T')[0];
   var itemsSnapshot = window._scItems.slice(); // cópia imutável antes de limpar
 
+  // ── Modo offline: sem conexão, guarda na fila local e confirma ao usuário ─
+  if(!navigator.onLine){
+    var descricao = itemsSnapshot.length+' item(s) — '+proj+' — '+resp;
+    itemsSnapshot.forEach(function(item, idx){
+      addToOfflineQueue({
+        id: 's_off_'+Date.now()+'_'+idx,
+        descricao: item.nome+' ('+item.qty+' '+item.un+')',
+        data: {produto:item.prodId,qty:item.qty,data:dt,projetoTxt:proj,equipe:eq,tipoServ:window._scTipo,resp:resp,obs:obs||'',_offline:true}
+      });
+    });
+    window._scItems = [];
+    window._scSessao = {usuario:window._scUsuario, items:[], mov:'', proj:'', eq:'', resp:'', obs:'', tipo:'', tipoEnt:''};
+    btn.disabled=false; btn.textContent='✓ Finalizar Tudo';
+    document.querySelector('.sb').innerHTML = [
+      '<div style="text-align:center;padding:30px 0 20px">',
+      '<div style="font-size:60px;margin-bottom:12px">📦</div>',
+      '<div style="font-size:20px;font-weight:700;margin-bottom:6px">Salvo offline!</div>',
+      '<div style="color:#f59e0b;font-size:13px;margin-bottom:20px">Sem conexão agora. '+itemsSnapshot.length+' item(s) foram guardados localmente e serão enviados automaticamente quando a internet voltar.</div>',
+      '<div style="background:#111316;border-radius:12px;padding:14px;margin-bottom:20px;text-align:left">',
+      itemsSnapshot.map(function(x){return'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px"><span>'+x.nome+'</span><strong>'+x.qty+' '+x.un+'</strong></div>';}).join(''),
+      '</div>',
+      '<button onclick="window.location.href=window.location.origin+window.location.pathname" style="width:100%;padding:14px;border-radius:11px;background:#f59e0b;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer">Nova Movimentação</button>',
+      '</div>'
+    ].join('');
+    return;
+  }
+
   // Uma ÚNICA transação cobrindo todos os itens do lote: ou os N itens são
   // validados e gravados juntos (estoque + movimentação), ou nenhum é gravado.
   // Isso evita o cenário de "o item 7 falhou, mas os itens 1-6 já tiveram o
@@ -4509,6 +4700,57 @@ window.sToast=function(msg){var t=document.getElementById('sc-t');if(!t)return;t
 
 window._appStarted=false;
 
+// ===================== MODO OFFLINE — Scanner =====================
+// Guarda itens escaneados no localStorage enquanto sem conexão e
+// sincroniza automaticamente quando a internet voltar.
+var OFFLINE_KEY='kflow_offline_queue';
+function getOfflineQueue(){
+  try{return JSON.parse(localStorage.getItem(OFFLINE_KEY)||'[]');}catch(e){return [];}
+}
+function saveOfflineQueue(q){
+  try{localStorage.setItem(OFFLINE_KEY,JSON.stringify(q));}catch(e){}
+}
+function addToOfflineQueue(item){
+  var q=getOfflineQueue(); q.push(item); saveOfflineQueue(q);
+  atualizarBadgeOffline();
+}
+function clearOfflineQueue(){localStorage.removeItem(OFFLINE_KEY);atualizarBadgeOffline();}
+function atualizarBadgeOffline(){
+  var q=getOfflineQueue();
+  var badge=document.getElementById('offline-badge');
+  if(badge) badge.style.display=q.length?'flex':'none';
+  var ct=document.getElementById('offline-count');
+  if(ct) ct.textContent=q.length;
+}
+function tentarSincronizarOffline(){
+  var q=getOfflineQueue();
+  if(!q.length||!navigator.onLine)return;
+  toast('Conexão restaurada — sincronizando '+q.length+' saída(s) offline...','info');
+  // Tenta enviar cada item da fila ao Firestore
+  var promises = q.map(function(item){
+    return dbf.collection('saidas').doc(item.id).set(item.data).then(function(){
+      if(item.estoqueId) return dbf.collection('produtos').doc(item.estoqueId).update({qty: item.estoqueQty});
+    });
+  });
+  Promise.all(promises).then(function(){
+    clearOfflineQueue();
+    toast('Sincronização concluída!','success');
+  }).catch(function(){
+    toast('Erro ao sincronizar — mantendo na fila offline.','error');
+  });
+}
+window.addEventListener('online', tentarSincronizarOffline);
+
+// Indicador de status de conexão no header (bolinha verde/vermelha)
+function atualizarStatusConexao(){
+  var el=document.getElementById('conn-status');
+  if(!el)return;
+  el.style.background=navigator.onLine?'var(--green)':'var(--red)';
+  el.title=navigator.onLine?'Online':'Offline — saídas serão salvas localmente';
+}
+window.addEventListener('online',  function(){atualizarStatusConexao();tentarSincronizarOffline();});
+window.addEventListener('offline', atualizarStatusConexao);
+
 function startApp(){
   var isScan=checkScanMode();
   if(isScan){
@@ -4528,6 +4770,8 @@ function startApp(){
         document.getElementById('app').classList.remove('hidden');
         applyUserUI(found);
         navigate('dashboard');
+        atualizarStatusConexao();
+        atualizarBadgeOffline();
         restored=true;
       }
     }
