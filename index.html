@@ -1506,6 +1506,13 @@ textarea { resize: vertical; min-height: 80px }
 
 /* ─── Filters ───────────────────────────────────────────────────── */
 .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center }
+.th-sort:hover { background: var(--bg3); color: var(--accent) }
+.th-sort.asc span::after { content: ' ▲' }
+.th-sort.desc span::after { content: ' ▼' }
+.pag-btn { padding: 6px 12px; border-radius: 7px; border: 1px solid var(--border); background: var(--bg2); color: var(--text2); font-size: 12px; cursor: pointer; font-family: inherit }
+.pag-btn:hover { border-color: var(--accent); color: var(--accent) }
+.pag-btn.active { background: var(--accent-hi); border-color: var(--accent); color: var(--accent); font-weight: 600 }
+.pag-info { font-size: 12px; color: var(--text3); padding: 0 8px }
 .fs2 { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r); color: var(--text); font-size: 13px; padding: 8px 13px; cursor: pointer; font-family: 'Inter', sans-serif; transition: border-color .15s; -webkit-appearance: none }
 .fs2:hover { border-color: var(--border3) }
 .srch { display: flex; align-items: center; gap: 8px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--r); padding: 8px 13px; min-width: 220px; transition: border-color .15s, box-shadow .15s }
@@ -1590,6 +1597,11 @@ textarea { resize: vertical; min-height: 80px }
 .es-t  { font-size: 14.5px; font-weight: 600; color: var(--text2); margin-bottom: 5px }
 .es-s  { font-size: 12.5px; color: var(--text3); max-width: 380px; line-height: 1.55 }
 .es-sm { text-align: center; padding: 28px 20px; color: var(--text3); font-size: 12.5px }
+.etq-row { display:flex; align-items:center; gap:10px; padding:10px 8px; border-bottom:1px solid rgba(255,255,255,.07); cursor:pointer; border-radius:8px; transition:background .1s }
+.etq-row:hover { background: var(--bg3) }
+.etq-lista { overflow-y:auto; flex:1; padding-right:4px }
+.etq-busca { width:100%; background:var(--bg3); border:1px solid rgba(255,255,255,.15); border-radius:9px; color:var(--text); font-size:14px; padding:10px 14px; outline:none; margin-bottom:10px }
+.etq-contador { font-size:13px; font-weight:700; color:#4f8aff; background:rgba(79,138,255,.12); border:1px solid rgba(79,138,255,.35); border-radius:20px; padding:5px 14px; margin-left:auto; white-space:nowrap }
 
 /* ─── Card polish ───────────────────────────────────────────────── */
 .card { transition: border-color .2s, box-shadow .2s, transform .2s }
@@ -1754,7 +1766,21 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 
     <div class="page" id="page-entrada">
       <div class="ph"><div><div class="pt">Entradas</div><div class="ps">Recebimento de materiais</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportEntradasCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bp" onclick="openModal('modal-entrada')"><i class="ti ti-plus"></i> Registrar Entrada</button></div></div>
-      <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Data</th><th>Produto</th><th>Qtd.</th><th>Fornecedor</th><th>Responsável</th><th>Tipo</th><th>Obs.</th><th></th></tr></thead><tbody id="entrada-body"></tbody></table></div></div></div>
+      <div class="filters">
+        <div class="srch" style="max-width:260px"><i class="ti ti-search"></i><input type="text" placeholder="Buscar produto, fornecedor..." id="fe-busca" oninput="renderEntradas()"></div>
+        <select class="fs2" id="fe-tipo" onchange="renderEntradas()"><option value="">Todos os Tipos</option><option>Compra</option><option>Devolução</option><option>Transferência</option><option>Ajuste</option></select>
+        <input type="date" id="fe-data-ini" class="fs2" onchange="renderEntradas()" title="Data inicial">
+        <input type="date" id="fe-data-fim" class="fs2" onchange="renderEntradas()" title="Data final">
+        <button class="btn bg bsm" onclick="limparFiltrosEntrada()" title="Limpar filtros"><i class="ti ti-x"></i></button>
+      </div>
+      <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr>
+        <th class="th-sort" onclick="sortEntradas('data')" style="cursor:pointer;user-select:none">Data <span id="sort-ent-data"></span></th>
+        <th>Produto</th><th>Qtd.</th>
+        <th class="th-sort" onclick="sortEntradas('forn')" style="cursor:pointer;user-select:none">Fornecedor <span id="sort-ent-forn"></span></th>
+        <th class="th-sort" onclick="sortEntradas('resp')" style="cursor:pointer;user-select:none">Responsável <span id="sort-ent-resp"></span></th>
+        <th>Tipo</th><th>Obs.</th><th></th>
+      </tr></thead><tbody id="entrada-body"></tbody></table></div></div></div>
+      <div id="ent-paginacao" style="display:flex;gap:8px;justify-content:center;align-items:center;padding:16px;flex-wrap:wrap"></div>
     </div>
 
     <div class="page" id="page-saida">
@@ -1767,7 +1793,15 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
         <input type="date" id="fs-data-fim" class="fs2" onchange="renderSaidas()" title="Data final">
         <button class="btn bg bsm" onclick="limparFiltroData()" title="Limpar datas"><i class="ti ti-x"></i></button>
       </div>
-      <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Data</th><th>Produto</th><th>Qtd.</th><th>Projeto</th><th>Equipe</th><th>Tipo</th><th>Responsável</th><th>Obs.</th><th></th></tr></thead><tbody id="saida-body"></tbody></table></div></div></div>
+      <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr>
+        <th class="th-sort" onclick="sortSaidas('data')" style="cursor:pointer;user-select:none">Data <span id="sort-sai-data"></span></th>
+        <th>Produto</th><th>Qtd.</th>
+        <th class="th-sort" onclick="sortSaidas('projetoTxt')" style="cursor:pointer;user-select:none">Projeto <span id="sort-sai-proj"></span></th>
+        <th>Equipe</th><th>Tipo</th>
+        <th class="th-sort" onclick="sortSaidas('resp')" style="cursor:pointer;user-select:none">Responsável <span id="sort-sai-resp"></span></th>
+        <th>Obs.</th><th></th>
+      </tr></thead><tbody id="saida-body"></tbody></table></div></div></div>
+      <div id="sai-paginacao" style="display:flex;gap:8px;justify-content:center;align-items:center;padding:16px;flex-wrap:wrap"></div>
     </div>
 
     <div class="page" id="page-qrcodes">
@@ -1778,9 +1812,12 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 
     <div class="page" id="page-projetos">
       <div class="ph"><div><div class="pt">Projetos</div><div class="ps">Histórico de projetos usados nas retiradas</div></div><div style="display:flex;gap:8px"><button class="btn bg" onclick="exportPepsRobo()" title="Gera o arquivo que o robô de automação SAP vai ler"><i class="ti ti-robot"></i> Exportar PEPs (robô)</button><button class="btn bg" onclick="exportProjetosCSV()"><i class="ti ti-file-spreadsheet"></i> Exportar</button><button class="btn bg" onclick="reconstruirProjetosDeHistorico()"><i class="ti ti-refresh"></i> Reconstruir do histórico</button><button class="btn bp" onclick="openModal('modal-projeto')"><i class="ti ti-plus"></i> Novo Projeto</button></div></div>
-      <div style="display:flex;gap:8px;margin-bottom:16px">
-        <div class="ptab sel" id="ptab-ativos" onclick="setProjetosTab('ativos')">Ativos</div>
-        <div class="ptab" id="ptab-liquidados" onclick="setProjetosTab('liquidados')">Liquidados</div>
+      <div style="display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+        <div style="flex:1;min-width:220px;position:relative"><i class="ti ti-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none"></i><input type="text" id="proj-busca" placeholder="Buscar por nome, código ou nº..." oninput="renderProjetos()" style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px;padding:9px 12px 9px 36px;font-family:inherit"></div>
+        <div style="display:flex;gap:8px">
+          <div class="ptab sel" id="ptab-ativos" onclick="setProjetosTab('ativos')">Ativos</div>
+          <div class="ptab" id="ptab-liquidados" onclick="setProjetosTab('liquidados')">Liquidados</div>
+        </div>
       </div>
       <div id="projetos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
     </div>
@@ -2203,7 +2240,11 @@ function initFirestoreSync(callback){
     }
   }
   COLLECTIONS.forEach(function(col){
-    var unsub=dbf.collection(col).onSnapshot(function(snap){
+    // Auditoria pode crescer muito — carrega só os 500 mais recentes pra não pesar o boot
+    var query = col==='auditoria'
+      ? dbf.collection(col).orderBy('ts','desc').limit(500)
+      : dbf.collection(col);
+    var unsub=query.onSnapshot(function(snap){
       var arr=[];
       snap.forEach(function(doc){arr.push(Object.assign({id:doc.id},doc.data()));});
       db[col]=arr;
@@ -2962,15 +3003,148 @@ function filterQRGrid(val){renderQRGrid(val);}
 
 </script>
 <script>
+// Estado de ordenação e paginação compartilhado
+var _sortEnt = {col:'data', dir:'desc'};
+var _sortSai = {col:'data', dir:'desc'};
+var _pageEnt = 1;
+var _pageSai = 1;
+var PAGE_SIZE = 50;
+
+function sortEntradas(col){
+  if(_sortEnt.col===col) _sortEnt.dir = _sortEnt.dir==='asc'?'desc':'asc';
+  else { _sortEnt.col=col; _sortEnt.dir='desc'; }
+  _pageEnt=1;
+  renderEntradas();
+}
+function sortSaidas(col){
+  if(_sortSai.col===col) _sortSai.dir = _sortSai.dir==='asc'?'desc':'asc';
+  else { _sortSai.col=col; _sortSai.dir='desc'; }
+  _pageSai=1;
+  renderSaidas();
+}
+
+function aplicarSortIndicador(prefixo, sortState){
+  ['data','forn','resp','projetoTxt'].forEach(function(c){
+    var el=document.getElementById('sort-'+prefixo+'-'+c.replace('projetoTxt','proj'));
+    if(el) el.textContent='';
+    var th=el?el.closest('th'):null;
+    if(th){th.classList.remove('asc','desc');}
+  });
+  var chave = sortState.col==='projetoTxt'?'proj':sortState.col;
+  var el=document.getElementById('sort-'+prefixo+'-'+chave);
+  if(el){
+    el.textContent = sortState.dir==='asc'?' ▲':' ▼';
+    var th=el.closest('th');
+    if(th){th.classList.add(sortState.dir);}
+  }
+}
+
+function renderizarPaginacao(containerId, total, pagina, onMudar){
+  var container=document.getElementById(containerId);
+  if(!container)return;
+  var totalPag=Math.ceil(total/PAGE_SIZE);
+  if(totalPag<=1){container.innerHTML='<span class="pag-info">'+total+' registro(s)</span>';return;}
+  var html='<span class="pag-info">'+total+' registros</span>';
+  html+='<button class="pag-btn" onclick="'+onMudar+'(1)" '+(pagina===1?'disabled':'')+'>«</button>';
+  html+='<button class="pag-btn" onclick="'+onMudar+'('+(pagina-1)+')" '+(pagina===1?'disabled':'')+'>‹</button>';
+  var inicio=Math.max(1,pagina-2), fim=Math.min(totalPag,pagina+2);
+  for(var i=inicio;i<=fim;i++){
+    html+='<button class="pag-btn'+(i===pagina?' active':'')+'" onclick="'+onMudar+'('+i+')">'+i+'</button>';
+  }
+  html+='<button class="pag-btn" onclick="'+onMudar+'('+(pagina+1)+')" '+(pagina===totalPag?'disabled':'')+'>›</button>';
+  html+='<button class="pag-btn" onclick="'+onMudar+'('+totalPag+')" '+(pagina===totalPag?'disabled':'')+'>»</button>';
+  container.innerHTML=html;
+}
+window.irPagEnt=function(p){_pageEnt=p;renderEntradas();};
+window.irPagSai=function(p){_pageSai=p;renderSaidas();};
+
 function renderEntradas(){
   fillProdSelect('ent-prod');
   var body=document.getElementById('entrada-body');
   if(body && !body.innerHTML.trim()) body.innerHTML=skeletonRows(8);
-  var list=db.entradas.slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
-  body.innerHTML=list.map(function(e){
+
+  var busca=((document.getElementById('fe-busca')||{}).value||'').toLowerCase().trim();
+  var tipo=((document.getElementById('fe-tipo')||{}).value||'');
+  var ini=((document.getElementById('fe-data-ini')||{}).value||'');
+  var fim=((document.getElementById('fe-data-fim')||{}).value||'');
+
+  var list=db.entradas.filter(function(e){
+    var p=gP(e.produto);
+    if(busca && !((p?p.nome:'').toLowerCase().indexOf(busca)>=0
+              || (p?p.codigo:'').toLowerCase().indexOf(busca)>=0
+              || (e.forn||'').toLowerCase().indexOf(busca)>=0
+              || (e.resp||'').toLowerCase().indexOf(busca)>=0)) return false;
+    if(tipo && e.tipoMov!==tipo) return false;
+    if(ini && (e.data||'')<ini) return false;
+    if(fim && (e.data||'')>fim) return false;
+    return true;
+  });
+
+  // Ordenar
+  var col=_sortEnt.col, dir=_sortEnt.dir;
+  list.sort(function(a,b){
+    var va=a[col]||'', vb=b[col]||'';
+    return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+  });
+  aplicarSortIndicador('ent', _sortEnt);
+
+  // Paginar
+  var total=list.length;
+  var pg=Math.min(_pageEnt, Math.ceil(total/PAGE_SIZE)||1);
+  _pageEnt=pg;
+  var fatia=list.slice((pg-1)*PAGE_SIZE, pg*PAGE_SIZE);
+
+  body.innerHTML=fatia.map(function(e){
     var p=gP(e.produto);
     return'<tr><td>'+fmtDate(e.data)+'</td><td><strong>'+(p?p.nome:'[Removido]')+'</strong><br><span style="font-size:11px;color:var(--text3)">'+(p?p.codigo:'')+'</span></td><td><span style="font-size:17px;font-weight:700;color:var(--green)">'+e.qty+'</span> <span style="color:var(--text2)">'+(p?p.unidade:'un')+'</span></td><td>'+(e.forn||'-')+'</td><td>'+(e.resp||'-')+'</td><td>'+(e.tipoMov?'<span class="badge bt">'+e.tipoMov+'</span>':'-')+'</td><td style="color:var(--text2);font-size:12px">'+(e.obs||'-')+'</td><td>'+(canEdit()?'<button class="btn bg bsm" style="color:var(--red)" onclick="delMov(\'entrada\',\''+e.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</td></tr>';
   }).join('')||'<tr><td colspan="8"><div class="es"><i class="ti ti-package-import"></i><div class="es-t">Nenhuma entrada registrada</div><div class="es-s">Registre o recebimento de materiais para acompanhar o histórico aqui.</div></div></td></tr>';
+
+  renderizarPaginacao('ent-paginacao', total, pg, 'irPagEnt');
+}
+
+function limparFiltrosEntrada(){
+  ['fe-busca','fe-tipo','fe-data-ini','fe-data-fim'].forEach(function(id){var el=document.getElementById(id);if(el)el.value='';});
+  _pageEnt=1; renderEntradas();
+}
+
+function renderSaidas(){
+  fillProdSelect('sai-prod');
+  fillEqSelect('sai-eq');fillEqSelect('fs-equipe');
+  fillProjDatalist();
+  var projF=((document.getElementById('fs-projeto-txt')||{}).value||'').toLowerCase();
+  var eqF=((document.getElementById('fs-equipe')||{}).value||'');
+  var tipoF=((document.getElementById('fs-tipo')||{}).value||'');
+  var dataIni=((document.getElementById('fs-data-ini')||{}).value||'');
+  var dataFim=((document.getElementById('fs-data-fim')||{}).value||'');
+
+  var list=db.saidas.filter(function(s){
+    var mp=!projF||(s.projetoTxt||'').toLowerCase().indexOf(projF)>=0;
+    var mDataIni=!dataIni||(s.data||'')>=dataIni;
+    var mDataFim=!dataFim||(s.data||'')<=dataFim;
+    return mp&&(!eqF||s.equipe===eqF)&&(!tipoF||s.tipoServ===tipoF)&&mDataIni&&mDataFim;
+  });
+
+  // Ordenar
+  var col=_sortSai.col, dir=_sortSai.dir;
+  list.sort(function(a,b){
+    var va=a[col]||'', vb=b[col]||'';
+    return dir==='asc'?va.localeCompare(vb):vb.localeCompare(va);
+  });
+  aplicarSortIndicador('sai', _sortSai);
+
+  // Paginar
+  var total=list.length;
+  var pg=Math.min(_pageSai, Math.ceil(total/PAGE_SIZE)||1);
+  _pageSai=pg;
+  var fatia=list.slice((pg-1)*PAGE_SIZE, pg*PAGE_SIZE);
+
+  var body=document.getElementById('saida-body');
+  body.innerHTML=fatia.map(function(s){
+    var p=gP(s.produto);var eq=gEq(s.equipe);
+    return'<tr><td>'+fmtDate(s.data)+'</td><td><strong>'+(p?p.nome:'[Removido]')+'</strong><br><span style="font-size:11px;color:var(--text3)">'+(p?p.codigo:'')+'</span></td><td><span style="font-size:17px;font-weight:700;color:var(--red)">'+s.qty+'</span> <span style="color:var(--text2)">'+(p?p.unidade:'un')+'</span></td><td><span class="badge bb">'+(s.projetoTxt||'-')+'</span></td><td>'+(eq?'<span class="badge bpu">'+eq.nome+'</span>':'-')+'</td><td>'+tipoBadge(s.tipoServ)+'</td><td>'+(s.resp||'-')+'</td><td style="color:var(--text2);font-size:12px">'+(s.obs||'-')+'</td><td>'+(canEdit()?'<button class="btn bg bsm" style="color:var(--red)" onclick="delMov(\'saida\',\''+s.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</td></tr>';
+  }).join('')||'<tr><td colspan="9"><div class="es"><i class="ti ti-package-export"></i><div class="es-t">Nenhuma saída registrada</div><div class="es-s">As retiradas vinculadas a projetos e equipes aparecerão aqui.</div></div></td></tr>';
+
+  renderizarPaginacao('sai-paginacao', total, pg, 'irPagSai');
 }
 
 function salvarEntrada(){
@@ -2989,30 +3163,8 @@ function salvarEntrada(){
   if(tipo==='Devolução'&&projTxt){
     registrarProjetoAutomatico(projTxt, '', document.getElementById('ent-resp').value, [{nome:p.nome,qty:qty}], data);
   }
+  logAuditoria('criar','entrada','Entrada de '+qty+' '+p.unidade+' de "'+p.nome+'"'+(tipo==='Devolução'?' (devolução do projeto '+projTxt+')':''));
   closeModal('modal-entrada');toast('Entrada de '+qty+' '+p.unidade+' registrada!','success');
-}
-
-function renderSaidas(){
-  fillProdSelect('sai-prod');
-  fillEqSelect('sai-eq');fillEqSelect('fs-equipe');
-  fillProjDatalist();
-  var projF=(document.getElementById('fs-projeto-txt')?document.getElementById('fs-projeto-txt').value:'').toLowerCase();
-  var eqF=document.getElementById('fs-equipe')?document.getElementById('fs-equipe').value:'';
-  var tipoF=document.getElementById('fs-tipo')?document.getElementById('fs-tipo').value:'';
-  var dataIni=document.getElementById('fs-data-ini')?document.getElementById('fs-data-ini').value:'';
-  var dataFim=document.getElementById('fs-data-fim')?document.getElementById('fs-data-fim').value:'';
-  var list=db.saidas.filter(function(s){
-    var mp=!projF||(s.projetoTxt||'').toLowerCase().indexOf(projF)>=0;
-    var mDataIni=!dataIni||(s.data||'')>=dataIni;
-    var mDataFim=!dataFim||(s.data||'')<=dataFim;
-    return mp&&(!eqF||s.equipe===eqF)&&(!tipoF||s.tipoServ===tipoF)&&mDataIni&&mDataFim;
-  });
-  list.sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
-  var body=document.getElementById('saida-body');
-  body.innerHTML=list.map(function(s){
-    var p=gP(s.produto);var eq=gEq(s.equipe);
-    return'<tr><td>'+fmtDate(s.data)+'</td><td><strong>'+(p?p.nome:'[Removido]')+'</strong><br><span style="font-size:11px;color:var(--text3)">'+(p?p.codigo:'')+'</span></td><td><span style="font-size:17px;font-weight:700;color:var(--red)">'+s.qty+'</span> <span style="color:var(--text2)">'+(p?p.unidade:'un')+'</span></td><td><span class="badge bb">'+(s.projetoTxt||'-')+'</span></td><td>'+(eq?'<span class="badge bpu">'+eq.nome+'</span>':'-')+'</td><td>'+tipoBadge(s.tipoServ)+'</td><td>'+(s.resp||'-')+'</td><td style="color:var(--text2);font-size:12px">'+(s.obs||'-')+'</td><td>'+(canEdit()?'<button class="btn bg bsm" style="color:var(--red)" onclick="delMov(\'saida\',\''+s.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="9"><div class="es"><i class="ti ti-package-export"></i><div class="es-t">Nenhuma saída registrada</div><div class="es-s">As retiradas vinculadas a projetos e equipes aparecerão aqui.</div></div></td></tr>';
 }
 
 function selTipo(el,val){
@@ -3119,9 +3271,11 @@ function salvarProduto(){
   };
   if(id){
     fsUpdate('produtos',id,data);
+    logAuditoria('editar','produto','Produto "'+nome+'" ('+codigo+') atualizado');
     toast('Produto atualizado!','success');
   }else{
     fsSave('produtos',Object.assign({id:genId()},data));
+    logAuditoria('criar','produto','Produto "'+nome+'" ('+codigo+') cadastrado');
     toast('Produto cadastrado!','success');
   }
   closeModal('modal-produto');
@@ -3158,7 +3312,16 @@ function setProjetosTab(tab){
 function renderProjetos(){
   var grid=document.getElementById('projetos-grid');
   var tab = window._projetosTab || 'ativos';
-  var lista = db.projetos.filter(function(p){ return tab==='liquidados' ? p.status==='liquidado' : p.status!=='liquidado'; });
+  var busca = ((document.getElementById('proj-busca')||{}).value||'').toLowerCase().trim();
+  var lista = db.projetos.filter(function(p){
+    var matchTab = tab==='liquidados' ? p.status==='liquidado' : p.status!=='liquidado';
+    if(!matchTab) return false;
+    if(!busca) return true;
+    return (p.nome||'').toLowerCase().indexOf(busca)>=0
+        || (p.codigo||'').toLowerCase().indexOf(busca)>=0
+        || (p.num||'').toLowerCase().indexOf(busca)>=0
+        || (p.pep||'').toLowerCase().indexOf(busca)>=0;
+  });
   if(!lista.length){
     var msg = tab==='liquidados' ? 'Nenhum projeto liquidado ainda' : 'Nenhum projeto ativo';
     grid.innerHTML='<div class="es" style="grid-column:1/-1"><i class="ti ti-folders"></i><div class="es-t">'+msg+'</div><div class="es-s">Projetos também são criados automaticamente ao digitar no campo de Saída.</div></div>';
@@ -3515,8 +3678,8 @@ function salvarProjeto(){
   var nome=document.getElementById('mproj-nome').value.trim();if(!nome){toast('Informe o nome!','error');return;}
   var id=document.getElementById('mproj-id').value;
   var data={nome:nome,codigo:document.getElementById('mproj-cod').value,num:document.getElementById('mproj-num').value,pep:document.getElementById('mproj-pep').value.trim(),status:document.getElementById('mproj-status').value,inicio:document.getElementById('mproj-ini').value,fim:document.getElementById('mproj-fim').value,desc:document.getElementById('mproj-desc').value};
-  if(id){fsUpdate('projetos',id,data);toast('Projeto atualizado!','success');}
-  else{fsSave('projetos',Object.assign({id:genId()},data));toast('Projeto criado!','success');}
+  if(id){fsUpdate('projetos',id,data);logAuditoria('editar','projeto','Projeto "'+nome+'" atualizado');toast('Projeto atualizado!','success');}
+  else{fsSave('projetos',Object.assign({id:genId()},data));logAuditoria('criar','projeto','Projeto "'+nome+'" criado');toast('Projeto criado!','success');}
   closeModal('modal-projeto');
 }
 function editProjeto(id){
@@ -3757,7 +3920,9 @@ function confirmarImport(){
     if(exists){if(update){fsUpdate('produtos',exists.id,{nome:d.nome,unidade:d.unidade,qty:d.qty});atualizados++;}}
     else{fsSave('produtos',{id:genId(),codigo:d.codigo,nome:d.nome,categoria:'',unidade:d.unidade,qty:d.qty,min:0,local:'',obs:'Importado do Excel'});novos++;}
   });
-  closeModal('modal-import');toast('Importado: '+novos+' novos, '+atualizados+' atualizados!','success');
+  closeModal('modal-import');
+  logAuditoria('importar','produto','Importação Excel: '+novos+' novo(s), '+atualizados+' atualizado(s)');
+  toast('Importado: '+novos+' novos, '+atualizados+' atualizados!','success');
   setTimeout(function(){navigate('estoque');},300);
 }
 
@@ -3921,7 +4086,34 @@ function exportReservasCSV(){
   baixarCSV('kflow-reservas-sap.csv',['Nº Serviço','PEP','Nº Reserva','Código Produto','Produto','Qtd Reservada','Unidade'],rows);
 }
 
-function globalSearch(val){if(!val)return;navigate('estoque');setTimeout(function(){filterEstoque(val);},50);}
+function globalSearch(val){
+  if(!val)return;
+  val=val.trim();
+  if(!val)return;
+  var v=val.toLowerCase();
+
+  // Tenta descobrir qual aba tem mais resultado pra navegar direto pra ela
+  var nProdutos=db.produtos.filter(function(p){return (p.nome||'').toLowerCase().indexOf(v)>=0||(p.codigo||'').toLowerCase().indexOf(v)>=0;}).length;
+  var nProjetos=db.projetos.filter(function(p){return (p.nome||'').toLowerCase().indexOf(v)>=0||(p.num||'').toLowerCase().indexOf(v)>=0||(p.pep||'').toLowerCase().indexOf(v)>=0;}).length;
+  var nSaidas=db.saidas.filter(function(s){return (s.projetoTxt||'').toLowerCase().indexOf(v)>=0||(s.resp||'').toLowerCase().indexOf(v)>=0;}).length;
+
+  if(nProjetos>=nProdutos && nProjetos>=nSaidas){
+    navigate('projetos');
+    setTimeout(function(){
+      var el=document.getElementById('proj-busca');
+      if(el){el.value=val;renderProjetos();}
+    },50);
+  } else if(nSaidas>=nProdutos && nSaidas>0){
+    navigate('saida');
+    setTimeout(function(){
+      var el=document.getElementById('fs-projeto-txt');
+      if(el){el.value=val;renderSaidas();}
+    },50);
+  } else {
+    navigate('estoque');
+    setTimeout(function(){filterEstoque(val);},50);
+  }
+}
 
 function verFilaOffline(){
   var q=getOfflineQueue();
@@ -3992,7 +4184,7 @@ function toast(msg,type){
 }
 </script>
 
-<script>
+
 function limparFiltroData(){
   var ini=document.getElementById("fs-data-ini");
   var fim=document.getElementById("fs-data-fim");
