@@ -2948,9 +2948,15 @@ function openRepor(id){
 function fillProjDatalist(){
   var uniq={};
   db.saidas.forEach(function(s){if(s.projetoTxt)uniq[s.projetoTxt]=true;});
-  db.projetos.forEach(function(p){uniq[p.nome+(p.num?' ('+p.num+')':'')]=true;});
+  // Sugere o Nº (ou o nome, se não tiver nº) exatamente como está salvo no projeto —
+  // nunca a combinação "Nome (Nº)", porque essa junção não bate com o texto usado pra
+  // reconhecer o projeto já existente, e acabava criando um projeto duplicado.
+  db.projetos.forEach(function(p){
+    var chave = (p.num && p.num.trim()) ? p.num.trim() : p.nome;
+    if(chave) uniq[chave]=true;
+  });
   var opts=Object.keys(uniq).map(function(t){return'<option value="'+t+'">';}).join('');
-  ['sai-proj-list','ent-proj-list'].forEach(function(id){
+  ['sai-proj-list','ent-proj-list','sc-proj-list'].forEach(function(id){
     var dl=document.getElementById(id);
     if(dl)dl.innerHTML=opts;
   });
@@ -4083,7 +4089,7 @@ function renderScanPage(produto){
 
   var ffDisplay = window._scItems.length > 0 ? 'block' : 'none';
   html += '<div class="fs" id="sc-ff" style="display:'+ffDisplay+'"><h3>INFORMAÇÕES DO PROJETO</h3>';
-  html += '<div class="fi"><label>PROJETO</label><input type="text" id="sc-proj" placeholder="EQ-12345 ou nome do projeto" value="'+(window._scSessao.proj||'')+'"></div>';
+  html += '<div class="fi"><label>PROJETO</label><input type="text" id="sc-proj" placeholder="EQ-12345 ou nome do projeto" value="'+(window._scSessao.proj||'')+'" list="sc-proj-list"><datalist id="sc-proj-list"></datalist></div>';
   html += '<div class="fi"><label>EQUIPE</label><select id="sc-eq"><option value="">Selecione...</option></select></div>';
   html += '<div class="fi"><label>RESPONSÁVEL</label><input type="text" id="sc-resp" placeholder="Seu nome" value="'+(window._scSessao.resp||(window._scUsuario?window._scUsuario.nome||window._scUsuario.user:''))+'"></div>';
   html += '<div class="fi" id="sc-tipo-fi" style="display:'+(movSel==='saida'?'block':'none')+'"><label>TIPO DE SERVIÇO</label><div class="tsg"><div class="tsb'+(window._scTipo==='Obra'?' sel':'')+'" onclick="sT(this,\'Obra\')">Obra</div><div class="tsb'+(window._scTipo==='STC'?' sel':'')+'" onclick="sT(this,\'STC\')">STC</div><div class="tsb'+(window._scTipo==='Transferência'?' sel':'')+'" onclick="sT(this,\'Transf.\')">Transf.</div><div class="tsb'+(window._scTipo==='OSI'?' sel':'')+'" onclick="sT(this,\'OSI\')">OSI</div><div class="tsb'+(window._scTipo==='Emergência'?' sel':'')+'" onclick="sT(this,\'Emerg.\')">Emerg.</div><div class="tsb'+(window._scTipo==='Manutenção'?' sel':'')+'" onclick="sT(this,\'Manut.\')">Manut.</div></div></div>';
@@ -4117,6 +4123,8 @@ function renderScanPage(produto){
     if(e.id === window._scSessao.eq) o.selected = true;
     eqSel.appendChild(o);
   });
+
+  fillProjDatalist();
 }
 
 // Abrir modal scanner SEM sair da página
@@ -4308,35 +4316,39 @@ window.finScan = function(){
   var dt = new Date().toISOString().split('T')[0];
   var itemsSnapshot = window._scItems.slice(); // cópia imutável antes de limpar
 
-  // Usar transactions para garantir atomicidade de cada item (evita race condition de estoque negativo)
-  var transactionPromises = itemsSnapshot.map(function(item){
-    return dbf.runTransaction(function(transaction){
-      var ref = dbf.collection('produtos').doc(item.prodId);
-      return transaction.get(ref).then(function(doc){
-        if(!doc.exists) throw new Error('Produto não encontrado: ' + item.nome);
+  // Uma ÚNICA transação cobrindo todos os itens do lote: ou os N itens são
+  // validados e gravados juntos (estoque + movimentação), ou nenhum é gravado.
+  // Isso evita o cenário de "o item 7 falhou, mas os itens 1-6 já tiveram o
+  // estoque descontado sem nenhum registro de movimentação correspondente".
+  dbf.runTransaction(function(transaction){
+    var refs = itemsSnapshot.map(function(item){ return dbf.collection('produtos').doc(item.prodId); });
+    return Promise.all(refs.map(function(ref){ return transaction.get(ref); })).then(function(docs){
+      // 1) Validar TODOS antes de gravar qualquer coisa
+      docs.forEach(function(doc, idx){
+        var item = itemsSnapshot[idx];
+        if(!doc.exists) throw new Error('PRODUTO_NAO_ENCONTRADO:' + item.nome);
         var curQty = doc.data().qty || 0;
         if(window._scMov === 'saida' && curQty < item.qty){
           throw new Error('ESTOQUE_INSUFICIENTE:' + item.nome + ':' + curQty + ':' + item.un);
         }
+      });
+      // 2) Só depois de validar tudo, gravar as N atualizações de estoque
+      //    e os N documentos de movimentação, todos na mesma transação.
+      docs.forEach(function(doc, idx){
+        var item = itemsSnapshot[idx];
+        var curQty = doc.data().qty || 0;
         var novaQty = window._scMov === 'entrada' ? curQty + item.qty : curQty - item.qty;
-        transaction.update(ref, {qty: novaQty});
+        transaction.update(refs[idx], {qty: novaQty});
+
+        if(window._scMov === 'entrada'){
+          var entId = 'e_'+Date.now()+'_'+idx+'_'+Math.random().toString(36).substr(2,5);
+          transaction.set(dbf.collection('entradas').doc(entId),{produto:item.prodId,qty:item.qty,data:dt,forn:window._scTipoEnt==='Devolução'?'':'QR Scan',resp:resp,tipoMov:window._scTipoEnt||'Compra',projetoTxt:window._scTipoEnt==='Devolução'?proj:'',obs:obs||''});
+        } else {
+          var saiId = 's_'+Date.now()+'_'+idx+'_'+Math.random().toString(36).substr(2,5);
+          transaction.set(dbf.collection('saidas').doc(saiId),{produto:item.prodId,qty:item.qty,data:dt,projetoTxt:proj,equipe:eq,tipoServ:window._scTipo,resp:resp,obs:obs||''});
+        }
       });
     });
-  });
-
-  Promise.all(transactionPromises).then(function(){
-    // Transactions OK — agora registrar os documentos de movimentação
-    var batch = dbf.batch();
-    itemsSnapshot.forEach(function(item){
-      if(window._scMov === 'entrada'){
-        var entId = 'e_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
-        batch.set(dbf.collection('entradas').doc(entId),{produto:item.prodId,qty:item.qty,data:dt,forn:window._scTipoEnt==='Devolução'?'':'QR Scan',resp:resp,tipoMov:window._scTipoEnt||'Compra',projetoTxt:window._scTipoEnt==='Devolução'?proj:'',obs:obs||''});
-      } else {
-        var saiId = 's_'+Date.now()+'_'+Math.random().toString(36).substr(2,5);
-        batch.set(dbf.collection('saidas').doc(saiId),{produto:item.prodId,qty:item.qty,data:dt,projetoTxt:proj,equipe:eq,tipoServ:window._scTipo,resp:resp,obs:obs||''});
-      }
-    });
-    return batch.commit();
   }).then(function(){
     // Registrar projeto automaticamente
     if(window._scMov === 'saida' || (window._scMov === 'entrada' && window._scTipoEnt === 'Devolução')){
@@ -4368,9 +4380,11 @@ window.finScan = function(){
     var msg = err.message || '';
     if(msg.indexOf('ESTOQUE_INSUFICIENTE:') === 0){
       var parts = msg.split(':');
-      window.sToast('Estoque insuficiente: '+parts[1]+' (disponível: '+parts[2]+' '+parts[3]+')');
+      window.sToast('Estoque insuficiente: '+parts[1]+' (disponível: '+parts[2]+' '+parts[3]+'). Nada foi salvo, ajuste a quantidade e tente de novo.');
+    } else if(msg.indexOf('PRODUTO_NAO_ENCONTRADO:') === 0){
+      window.sToast('Produto não encontrado: '+msg.split(':')[1]+'. Remova esse item da lista e tente de novo.');
     } else {
-      window.sToast('Erro ao salvar. Tente novamente.');
+      window.sToast('Erro ao salvar. Nada foi gravado — tente novamente.');
     }
   });
 };
@@ -4451,14 +4465,16 @@ async function reconstruirProjetosDeHistorico(){
 
 function registrarProjetoAutomatico(projetoTxt, equipeId, resp, itensSaida, dt){
   if(!projetoTxt) return;
+  var norm=function(s){return (s||'').trim().toLowerCase().replace(/\s+/g,' ');};
+  var alvo=norm(projetoTxt);
 
   // Verificar se já existe projeto com esse nome/número
   var projetoExistente = null;
   for(var i=0;i<db.projetos.length;i++){
     var p = db.projetos[i];
     // Comparar por nome OU por número
-    if((p.nome && p.nome.trim().toLowerCase() === projetoTxt.trim().toLowerCase()) ||
-       (p.num  && p.num.trim().toLowerCase()  === projetoTxt.trim().toLowerCase())){
+    if((p.nome && norm(p.nome) === alvo) ||
+       (p.num  && norm(p.num)  === alvo)){
       projetoExistente = p;
       break;
     }
