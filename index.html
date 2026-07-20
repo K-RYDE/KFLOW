@@ -1377,14 +1377,27 @@ body {
 #app { display: flex; min-height: 100vh }
 
 /* ─── Sidebar ───────────────────────────────────────────────────── */
-.sidebar { width: var(--sw); height: 100vh; position: fixed; left: 0; top: 0; background: color-mix(in srgb, var(--bg2) 88%, transparent); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100 }
+.sidebar { width: var(--sw); height: 100vh; position: fixed; left: 0; top: 0; background: color-mix(in srgb, var(--bg2) 88%, transparent); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%); border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 100; transition: width .22s cubic-bezier(.4,0,.2,1) }
+.sidebar-toggle { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; padding: 4px; border-radius: 6px; margin-left: auto; flex-shrink: 0; transition: color .15s }
+.sidebar-toggle:hover { color: var(--text) }
+.sidebar-label { flex: 1; min-width: 0; overflow: hidden; transition: opacity .15s, max-width .22s }
+.sidebar.collapsed { width: 64px }
+.sidebar.collapsed .sidebar-label { opacity: 0; max-width: 0; pointer-events: none }
+.sidebar.collapsed .ns { opacity: 0; height: 0; overflow: hidden; padding: 0; margin: 0 }
+.sidebar.collapsed .ni { justify-content: center; padding: 10px 0 }
+.sidebar.collapsed .ni i { margin: 0 }
+.sidebar.collapsed .ni span, .sidebar.collapsed .ni > :not(i) { display: none }
+.sidebar.collapsed .nbadge { display: none }
+.sidebar.collapsed .sf { justify-content: center; padding: 10px 0 }
+.sidebar.collapsed .sf > :not(.av) { display: none }
+.sidebar.collapsed .sidebar-toggle i::before { content: '\ea1a' }
 .logo { padding: 0 18px; height: var(--hh); display: flex; align-items: center; gap: 11px; border-bottom: 1px solid var(--border); flex-shrink: 0 }
 .logo-i { width: 34px; height: 34px; background: var(--grad); border-radius: 11px; display: flex; align-items: center; justify-content: center; font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 14px; color: #fff; flex-shrink: 0; box-shadow: 0 4px 14px rgba(91,141,239,.35) }
 .logo-t { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 16.5px; letter-spacing: -.2px }
 .logo-s { font-size: 10px; color: var(--text3); margin-top: 1px; white-space: nowrap }
 nav { padding: 14px 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--bg4) transparent }
 .ns { font-size: 10px; font-weight: 700; color: var(--text3); padding: 16px 10px 6px; letter-spacing: 1px; text-transform: uppercase; user-select: none }
-.ni { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: var(--r); cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 500; transition: background .15s, color .15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; position: relative }
+.ni { display: flex; align-items: center; gap: 11px; padding: 9px 11px; border-radius: var(--r); cursor: pointer; color: var(--text2); font-size: 13px; font-weight: 500; transition: background .15s, color .15s; margin-bottom: 2px; border: none; background: none; width: 100%; text-align: left; position: relative; white-space: nowrap; overflow: hidden }
 .ni:hover { background: var(--bg3); color: var(--text) }
 .ni:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; color: var(--text) }
 .ni.active { color: #fff; background: var(--grad); font-weight: 600; box-shadow: 0 4px 16px rgba(91,141,239,.3) }
@@ -1398,7 +1411,8 @@ nav { padding: 14px 10px; flex: 1; overflow-y: auto; scrollbar-width: thin; scro
 .ur { font-size: 11px; color: var(--text3) }
 
 /* ─── Main area ─────────────────────────────────────────────────── */
-.main { margin-left: var(--sw); flex: 1; display: flex; flex-direction: column; min-width: 0 }
+.main { margin-left: var(--sw); flex: 1; display: flex; flex-direction: column; min-width: 0; transition: margin-left .22s cubic-bezier(.4,0,.2,1) }
+.sidebar.collapsed ~ .main { margin-left: 64px }
 
 /* ─── Header ────────────────────────────────────────────────────── */
 .hdr { height: var(--hh); background: color-mix(in srgb, var(--bg2) 78%, transparent); backdrop-filter: blur(20px) saturate(140%); -webkit-backdrop-filter: blur(20px) saturate(140%); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; position: sticky; top: 0; z-index: 50; gap: 14px }
@@ -1674,28 +1688,29 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 </div>
 
 <div id="app" class="hidden">
-<aside class="sidebar">
+<aside class="sidebar" id="sidebar">
   <div class="logo">
     <div class="logo-i">K</div>
-    <div><div class="logo-t">KFLOW</div><div class="logo-s">Controle de Estoque</div></div>
+    <div class="sidebar-label"><div class="logo-t">KFLOW</div><div class="logo-s">Controle de Estoque</div></div>
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Minimizar menu" aria-label="Minimizar menu"><i class="ti ti-layout-sidebar-left-collapse"></i></button>
   </div>
   <nav role="navigation" aria-label="Menu principal">
     <div class="ns">Principal</div>
-    <div class="ni active" role="button" tabindex="0" onclick="navigate('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('dashboard')"><i class="ti ti-dashboard" aria-hidden="true"></i> Dashboard</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('estoque')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('estoque')"><i class="ti ti-box" aria-hidden="true"></i> Estoque</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('entrada')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('entrada')"><i class="ti ti-package-import" aria-hidden="true"></i> Entradas</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('saida')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('saida')"><i class="ti ti-package-export" aria-hidden="true"></i> Saídas</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('qrcodes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('qrcodes')"><i class="ti ti-qrcode" aria-hidden="true"></i> QR Codes</div>
+    <div class="ni active" role="button" tabindex="0" title="Dashboard" onclick="navigate('dashboard')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('dashboard')"><i class="ti ti-dashboard" aria-hidden="true"></i> Dashboard</div>
+    <div class="ni" role="button" tabindex="0" title="Estoque" onclick="navigate('estoque')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('estoque')"><i class="ti ti-box" aria-hidden="true"></i> Estoque</div>
+    <div class="ni" role="button" tabindex="0" title="Entradas" onclick="navigate('entrada')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('entrada')"><i class="ti ti-package-import" aria-hidden="true"></i> Entradas</div>
+    <div class="ni" role="button" tabindex="0" title="Saídas" onclick="navigate('saida')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('saida')"><i class="ti ti-package-export" aria-hidden="true"></i> Saídas</div>
+    <div class="ni" role="button" tabindex="0" title="QR Codes" onclick="navigate('qrcodes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('qrcodes')"><i class="ti ti-qrcode" aria-hidden="true"></i> QR Codes</div>
     <div class="ns">Gestão</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('projetos')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('projetos')"><i class="ti ti-folders" aria-hidden="true"></i> Projetos</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('reservas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('reservas')"><i class="ti ti-database" aria-hidden="true"></i> Reservas SAP</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('equipes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('equipes')"><i class="ti ti-users" aria-hidden="true"></i> Equipes</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('categorias')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('categorias')"><i class="ti ti-tags" aria-hidden="true"></i> Categorias</div>
+    <div class="ni" role="button" tabindex="0" title="Projetos" onclick="navigate('projetos')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('projetos')"><i class="ti ti-folders" aria-hidden="true"></i> Projetos</div>
+    <div class="ni" role="button" tabindex="0" title="Reservas SAP" onclick="navigate('reservas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('reservas')"><i class="ti ti-database" aria-hidden="true"></i> Reservas SAP</div>
+    <div class="ni" role="button" tabindex="0" title="Equipes" onclick="navigate('equipes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('equipes')"><i class="ti ti-users" aria-hidden="true"></i> Equipes</div>
+    <div class="ni" role="button" tabindex="0" title="Categorias" onclick="navigate('categorias')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('categorias')"><i class="ti ti-tags" aria-hidden="true"></i> Categorias</div>
     <div class="ns" id="nav-admin-section">Admin</div>
-    <div class="ni" id="nav-usuarios" role="button" tabindex="0" onclick="navigate('usuarios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('usuarios')"><i class="ti ti-user-cog" aria-hidden="true"></i> Usuários</div>
-    <div class="ni" id="nav-auditoria" role="button" tabindex="0" onclick="navigate('auditoria')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('auditoria')"><i class="ti ti-shield-check" aria-hidden="true"></i> Auditoria</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('relatorios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('relatorios')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Relatórios</div>
-    <div class="ni" role="button" tabindex="0" onclick="navigate('alertas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('alertas')"><i class="ti ti-bell" aria-hidden="true"></i> Alertas <span class="nbadge" id="alert-badge">0</span></div>
+    <div class="ni" id="nav-usuarios" role="button" tabindex="0" title="Usuários" onclick="navigate('usuarios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('usuarios')"><i class="ti ti-user-cog" aria-hidden="true"></i> Usuários</div>
+    <div class="ni" id="nav-auditoria" role="button" tabindex="0" title="Auditoria" onclick="navigate('auditoria')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('auditoria')"><i class="ti ti-shield-check" aria-hidden="true"></i> Auditoria</div>
+    <div class="ni" role="button" tabindex="0" title="Relatórios" onclick="navigate('relatorios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('relatorios')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Relatórios</div>
+    <div class="ni" role="button" tabindex="0" title="Alertas" onclick="navigate('alertas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('alertas')"><i class="ti ti-bell" aria-hidden="true"></i> Alertas <span class="nbadge" id="alert-badge">0</span></div>
   </nav>
   <div class="ni" role="button" tabindex="0" onclick="toggleTheme()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleTheme()" style="margin:4px 12px"><i class="ti ti-sun-moon" aria-hidden="true"></i> <span id="theme-toggle-label">Tema escuro</span></div>
   <div class="sf" onclick="doLogout()">
@@ -1707,6 +1722,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 
 <div class="main" role="main">
   <header class="hdr" role="banner">
+    <button id="sidebar-open-btn" onclick="toggleSidebar()" title="Abrir menu" style="display:none;background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:7px;flex-shrink:0"><i class="ti ti-layout-sidebar-left-expand"></i></button>
     <div class="hdr-t" id="header-title">Dashboard</div>
     <div class="sync-dot" id="sync-dot" title="Sincronizado"></div>
     <div id="conn-status" title="Online" style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;box-shadow:0 0 6px currentColor;transition:background .3s"></div>
@@ -2213,6 +2229,32 @@ function applyThemeOnLoad(){
   document.documentElement.setAttribute('data-theme',t);
   var lbl=document.getElementById('theme-toggle-label');
   if(lbl)lbl.textContent=t==='light'?'Tema claro':'Tema escuro';
+
+  // Restaurar estado da sidebar
+  var collapsed = false;
+  try{collapsed = localStorage.getItem('kflow_sidebar')==='collapsed';}catch(e){}
+  if(collapsed) applySidebarState(true);
+}
+
+function applySidebarState(collapsed){
+  var sb = document.getElementById('sidebar');
+  var openBtn = document.getElementById('sidebar-open-btn');
+  if(!sb) return;
+  if(collapsed){
+    sb.classList.add('collapsed');
+    if(openBtn) openBtn.style.display = 'flex';
+  } else {
+    sb.classList.remove('collapsed');
+    if(openBtn) openBtn.style.display = 'none';
+  }
+}
+
+function toggleSidebar(){
+  var sb = document.getElementById('sidebar');
+  if(!sb) return;
+  var nowCollapsed = !sb.classList.contains('collapsed');
+  applySidebarState(nowCollapsed);
+  try{localStorage.setItem('kflow_sidebar', nowCollapsed?'collapsed':'expanded');}catch(e){}
 }
 function toggleTheme(){
   var cur=document.documentElement.getAttribute('data-theme')||'dark';
@@ -4184,7 +4226,7 @@ function toast(msg,type){
 }
 </script>
 
-
+<script>
 function limparFiltroData(){
   var ini=document.getElementById("fs-data-ini");
   var fim=document.getElementById("fs-data-fim");
