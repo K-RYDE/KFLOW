@@ -1268,6 +1268,7 @@ w.QRCode={toCanvas:function(canvas,url,opts,cb){if(typeof opts==='function'){cb=
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 <style>
 /* ─── Design tokens ─────────────────────────────────────────────── */
 :root {
@@ -1479,6 +1480,97 @@ tbody tr:nth-child(even):hover td { background: rgba(91,141,239,.06) }
 /* ─── Badges ────────────────────────────────────────────────────── */
 .badge { display: inline-flex; align-items: center; padding: 3px 11px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: .2px; border: 1px solid transparent }
 .ptab { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text3); cursor: pointer; border: 1px solid var(--border) }
+
+/* ═══════════════════════════════════════════════════════════
+   BI ANALÍTICO — visual impactante, identidade KFLOW
+   ═══════════════════════════════════════════════════════════ */
+#page-bi { background: #0b0f18; min-height:100vh; padding:0; margin:-24px; overflow:hidden }
+.bi-wrap { padding:0 0 32px }
+
+/* Header */
+.bi-hdr { position:relative; background:linear-gradient(135deg,#0d1b3e 0%,#0a2444 40%,#071e38 100%); border-bottom:1px solid rgba(45,212,191,.2); padding:18px 28px 14px; display:flex; align-items:center; gap:20px; flex-wrap:wrap; overflow:hidden }
+.bi-hdr::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse 60% 100% at 50% -20%, rgba(45,212,191,.12) 0%, transparent 70%); pointer-events:none }
+.bi-hdr-left { flex:1; min-width:0 }
+.bi-hdr-icon { width:44px; height:44px; background:linear-gradient(135deg,#2dd4bf,#5b8def); border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; color:#fff; flex-shrink:0; box-shadow:0 0 20px rgba(45,212,191,.4) }
+.bi-hdr-title { font-family:'Space Grotesk',sans-serif; font-size:18px; font-weight:700; color:#fff; letter-spacing:-.2px }
+.bi-hdr-sub { font-size:11.5px; color:rgba(255,255,255,.45); margin-top:2px }
+.bi-status-pill { padding:7px 18px; border-radius:30px; font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; border:2px solid; animation:bi-pulse 2s infinite }
+.bi-status-pill.ok { background:rgba(34,197,94,.15); color:#22c55e; border-color:#22c55e }
+.bi-status-pill.warn { background:rgba(245,158,11,.15); color:#f59e0b; border-color:#f59e0b }
+.bi-status-pill.crit { background:rgba(239,68,68,.15); color:#ef4444; border-color:#ef4444 }
+@keyframes bi-pulse { 0%,100%{box-shadow:0 0 0 0 currentColor} 50%{box-shadow:0 0 0 5px transparent} }
+.bi-hdr-controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap }
+.bi-sel { background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15); border-radius:8px; color:#fff; padding:7px 12px; font-size:12px; font-family:inherit; cursor:pointer; backdrop-filter:blur(8px) }
+.bi-sel option { background:#0d1b3e; color:#fff }
+.bi-btn { background:rgba(45,212,191,.15); border:1px solid rgba(45,212,191,.4); color:#2dd4bf; border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit; transition:all .15s }
+.bi-btn:hover { background:rgba(45,212,191,.25) }
+.bi-clock { font-family:'Space Grotesk',sans-serif; font-size:20px; font-weight:700; color:#fff; letter-spacing:1px; min-width:60px; text-align:right }
+
+/* Ticker */
+.bi-ticker { background:rgba(0,0,0,.4); border-bottom:1px solid rgba(45,212,191,.1); padding:8px 0; overflow:hidden; white-space:nowrap }
+.bi-ticker-inner { display:inline-flex; gap:0; animation:bi-scroll 40s linear infinite }
+.bi-ticker-inner:hover { animation-play-state:paused }
+@keyframes bi-scroll { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+.bi-tick-item { display:inline-flex; align-items:center; gap:8px; padding:0 28px; font-size:12px; color:rgba(255,255,255,.6); border-right:1px solid rgba(255,255,255,.08) }
+.bi-tick-item .ti-name { font-weight:600; color:rgba(255,255,255,.85) }
+.bi-tick-item .ti-val { font-weight:700 }
+.bi-tick-item .ti-val.up { color:#22c55e }
+.bi-tick-item .ti-val.warn { color:#f59e0b }
+.bi-tick-item .ti-val.down { color:#ef4444 }
+
+/* KPIs */
+.bi-kpis { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; padding:20px 28px 0 }
+.bi-kpi { background:linear-gradient(160deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:18px 16px; position:relative; overflow:hidden; transition:border-color .2s, transform .15s }
+.bi-kpi:hover { border-color:color-mix(in srgb, var(--kc,#2dd4bf) 60%, transparent); transform:translateY(-2px) }
+.bi-kpi::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--kc,#2dd4bf); border-radius:14px 14px 0 0 }
+.bi-kpi-icon { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:14px; color:var(--kc,#2dd4bf); background:color-mix(in srgb, var(--kc,#2dd4bf) 18%, #0d1b3e); box-shadow:0 0 0 1px color-mix(in srgb, var(--kc,#2dd4bf) 30%, transparent) }
+.bi-kpi-icon i { color:var(--kc,#2dd4bf) !important; font-size:22px }
+.bi-kpi-val { font-family:'Space Grotesk',sans-serif; font-size:36px; font-weight:700; color:#fff; line-height:1; margin-bottom:4px; text-shadow:0 0 20px color-mix(in srgb, var(--kc,#2dd4bf) 40%, transparent) }
+.bi-kpi-lbl { font-size:10.5px; color:rgba(255,255,255,.55); font-weight:600; text-transform:uppercase; letter-spacing:.6px }
+.bi-kpi-sub { font-size:11px; color:rgba(255,255,255,.35); margin-top:6px }
+.bi-kpi-delta { position:absolute; top:12px; right:12px; font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; z-index:1; white-space:nowrap }
+.bi-kpi-delta.up { background:rgba(34,197,94,.2); color:#22c55e }
+.bi-kpi-delta.down { background:rgba(239,68,68,.2); color:#ef4444 }
+
+/* Grid principal */
+.bi-main { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; padding:16px 28px 0 }
+.bi-panel { background:linear-gradient(135deg,rgba(255,255,255,.04) 0%,rgba(255,255,255,.02) 100%); border:1px solid rgba(255,255,255,.07); border-radius:16px; padding:20px; overflow:hidden }
+.bi-panel.bi-wide { grid-column:span 2 }
+.bi-panel.bi-full { grid-column:span 3 }
+.bi-panel-h { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px }
+.bi-panel-title { font-size:13px; font-weight:600; color:rgba(255,255,255,.85); display:flex; align-items:center; gap:7px }
+.bi-panel-title i { color:#2dd4bf; font-size:15px }
+.bi-panel-badge { background:rgba(45,212,191,.12); color:#2dd4bf; border:1px solid rgba(45,212,191,.25); border-radius:20px; padding:2px 10px; font-size:10.5px; font-weight:700 }
+.bi-panel-badge.warn { background:rgba(245,158,11,.12); color:#f59e0b; border-color:rgba(245,158,11,.25) }
+.bi-panel-badge.crit { background:rgba(239,68,68,.12); color:#ef4444; border-color:rgba(239,68,68,.25) }
+.bi-chart-wrap { position:relative; height:200px }
+.bi-chart-wrap.tall { height:260px }
+
+/* Ranking */
+.bi-rank-item { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid rgba(255,255,255,.05) }
+.bi-rank-item:last-child { border-bottom:none }
+.bi-rank-num { width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.08); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:rgba(255,255,255,.5); flex-shrink:0 }
+.bi-rank-num.gold { background:linear-gradient(135deg,#f59e0b,#fcd34d); color:#000 }
+.bi-rank-num.silver { background:linear-gradient(135deg,#94a3b8,#cbd5e1); color:#000 }
+.bi-rank-num.bronze { background:linear-gradient(135deg,#b45309,#d97706); color:#fff }
+.bi-rank-name { flex:1; font-size:12.5px; color:rgba(255,255,255,.8); font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
+.bi-rank-sub { font-size:10.5px; color:rgba(255,255,255,.35) }
+.bi-rank-val { font-size:13px; font-weight:700; color:#2dd4bf; flex-shrink:0 }
+.bi-rank-bar-wrap { width:100%; height:4px; background:rgba(255,255,255,.06); border-radius:2px; margin-top:4px }
+.bi-rank-bar { height:4px; border-radius:2px; background:linear-gradient(90deg,#2dd4bf,#5b8def) }
+
+/* Grid de projetos */
+.bi-proj-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px; max-height:280px; overflow-y:auto; padding-right:4px }
+.bi-proj-card { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:10px 12px; cursor:pointer; transition:all .15s }
+.bi-proj-card:hover { border-color:rgba(45,212,191,.3); background:rgba(45,212,191,.05) }
+.bi-proj-card-name { font-size:12px; font-weight:600; color:#fff; margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+.bi-proj-card-val { font-size:20px; font-weight:700; color:#2dd4bf }
+.bi-proj-card-sub { font-size:10px; color:rgba(255,255,255,.35); margin-top:2px }
+.bi-proj-card.warn .bi-proj-card-val { color:#f59e0b }
+.bi-proj-card.crit .bi-proj-card-val { color:#ef4444 }
+
+@media(max-width:1200px){ .bi-kpis{grid-template-columns:repeat(3,1fr)} .bi-main{grid-template-columns:1fr 1fr} .bi-panel.bi-wide,.bi-panel.bi-full{grid-column:span 2} }
+@media(max-width:700px){ .bi-kpis{grid-template-columns:repeat(2,1fr)} .bi-main{grid-template-columns:1fr} .bi-panel.bi-wide,.bi-panel.bi-full{grid-column:span 1} }
 .ptab:hover { color: var(--text) }
 .ptab.sel { background: var(--accent-hi); color: var(--accent); border-color: var(--accent) }
 .bg2 { background: rgba(34,197,94,.12); color: #4ade80; border-color: rgba(34,197,94,.22) }
@@ -1710,6 +1802,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
     <div class="ni" id="nav-usuarios" role="button" tabindex="0" title="Usuários" onclick="navigate('usuarios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('usuarios')"><i class="ti ti-user-cog" aria-hidden="true"></i> Usuários</div>
     <div class="ni" id="nav-auditoria" role="button" tabindex="0" title="Auditoria" onclick="navigate('auditoria')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('auditoria')"><i class="ti ti-shield-check" aria-hidden="true"></i> Auditoria</div>
     <div class="ni" role="button" tabindex="0" title="Relatórios" onclick="navigate('relatorios')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('relatorios')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Relatórios</div>
+    <div class="ni" role="button" tabindex="0" title="BI — Painel Analítico" onclick="navigate('bi')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('bi')"><i class="ti ti-chart-dots-3" aria-hidden="true"></i> BI Analítico</div>
     <div class="ni" role="button" tabindex="0" title="Alertas" onclick="navigate('alertas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('alertas')"><i class="ti ti-bell" aria-hidden="true"></i> Alertas <span class="nbadge" id="alert-badge">0</span></div>
   </nav>
   <div class="ni" role="button" tabindex="0" onclick="toggleTheme()" onkeydown="if(event.key==='Enter'||event.key===' ')toggleTheme()" style="margin:4px 12px"><i class="ti ti-sun-moon" aria-hidden="true"></i> <span id="theme-toggle-label">Tema escuro</span></div>
@@ -1889,6 +1982,112 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
       <div class="card"><div class="cb" style="padding:0"><div class="tw"><table><thead><tr><th>Data/Hora</th><th>Ação</th><th>Tipo</th><th>Descrição</th><th>Usuário</th></tr></thead><tbody id="auditoria-body"></tbody></table></div></div></div>
     </div>
 
+    <div class="page" id="page-bi">
+    <div class="bi-wrap">
+
+      <!-- HEADER -->
+      <div class="bi-hdr">
+        <div class="bi-hdr-icon"><i class="ti ti-chart-dots-3"></i></div>
+        <div class="bi-hdr-left">
+          <div class="bi-hdr-title">BI Analítico — KFLOW Logística</div>
+          <div class="bi-hdr-sub" id="bi-sub">Carregando dados...</div>
+        </div>
+        <div id="bi-status-pill" class="bi-status-pill ok">OPERACIONAL</div>
+        <div class="bi-hdr-controls">
+          <select id="bi-mes" onchange="renderBI()" class="bi-sel"></select>
+          <select id="bi-ano" onchange="renderBI()" class="bi-sel"></select>
+          <button class="bi-btn" onclick="exportarBI()"><i class="ti ti-file-spreadsheet"></i> Exportar</button>
+        </div>
+        <div class="bi-clock" id="bi-clock">--:--</div>
+      </div>
+
+      <!-- TICKER -->
+      <div class="bi-ticker">
+        <div class="bi-ticker-inner" id="bi-ticker-inner"></div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="bi-kpis" id="bi-kpis"></div>
+
+      <!-- LINHA 1: Histórico 12 meses (largo) + Rosca equipes -->
+      <div class="bi-main">
+        <div class="bi-panel bi-wide">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-trending-up"></i> Saídas mensais — últimos 12 meses</div>
+            <div class="bi-panel-badge" id="bi-badge-hist"></div>
+          </div>
+          <div class="bi-chart-wrap tall"><canvas id="bi-chart-hist"></canvas></div>
+        </div>
+        <div class="bi-panel">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-users"></i> Por equipe</div>
+          </div>
+          <div class="bi-chart-wrap tall"><canvas id="bi-chart-equipes"></canvas></div>
+        </div>
+
+        <!-- LINHA 2: Saídas por dia + Tipo de serviço + Ranking resp -->
+        <div class="bi-panel">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-calendar"></i> Saídas por dia do mês</div>
+            <div class="bi-panel-badge" id="bi-badge-dias"></div>
+          </div>
+          <div class="bi-chart-wrap"><canvas id="bi-chart-dias"></canvas></div>
+        </div>
+        <div class="bi-panel">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-tools"></i> Por tipo de serviço</div>
+          </div>
+          <div class="bi-chart-wrap"><canvas id="bi-chart-tipos"></canvas></div>
+        </div>
+        <div class="bi-panel">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-award"></i> Top responsáveis</div>
+          </div>
+          <div id="bi-rank-resp"></div>
+        </div>
+
+        <!-- LINHA 3: Top materiais (largo) + Estoque situação -->
+        <div class="bi-panel bi-wide">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-package"></i> Top 10 materiais mais retirados no período</div>
+          </div>
+          <div class="bi-chart-wrap"><canvas id="bi-chart-materiais"></canvas></div>
+        </div>
+        <div class="bi-panel">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-box"></i> Situação do estoque</div>
+          </div>
+          <div class="bi-chart-wrap"><canvas id="bi-chart-estoque"></canvas></div>
+        </div>
+
+        <!-- LINHA 4: SAP reconciliação + Ranking projetos -->
+        <div class="bi-panel">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-robot"></i> Reconciliação SAP</div>
+            <div class="bi-panel-badge warn" id="bi-badge-sap"></div>
+          </div>
+          <div class="bi-chart-wrap"><canvas id="bi-chart-sap"></canvas></div>
+        </div>
+        <div class="bi-panel bi-wide">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-folders"></i> Projetos do período</div>
+            <div class="bi-panel-badge" id="bi-badge-projetos"></div>
+          </div>
+          <div class="bi-proj-grid" id="bi-proj-grid"></div>
+        </div>
+
+        <!-- LINHA 5: Tabela completa -->
+        <div class="bi-panel bi-full">
+          <div class="bi-panel-h">
+            <div class="bi-panel-title"><i class="ti ti-table"></i> Maiores saídas do período</div>
+            <div class="bi-panel-badge" id="bi-badge-tabela"></div>
+          </div>
+          <div class="tw"><table><thead><tr><th>Data</th><th>Material</th><th>Qtd.</th><th>Projeto</th><th>Equipe</th><th>Tipo</th><th>Responsável</th></tr></thead><tbody id="bi-tabela-body"></tbody></table></div>
+        </div>
+      </div>
+    </div>
+    </div>
+
     <div class="page" id="page-alertas">
       <div class="ph"><div><div class="pt">Alertas</div><div class="ps">Produtos que precisam de atenção</div></div></div>
       <div id="alertas-lista"></div>
@@ -2034,6 +2233,32 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
   <div class="mf">
     <button class="btn bg" onclick="closeModal('modal-projeto')">Cancelar</button>
     <button class="btn bp" onclick="salvarProjeto()"><i class="ti ti-check"></i> Salvar</button>
+  </div>
+</div>
+</div>
+
+<div class="mo" id="modal-estoque-end">
+<div class="modal" style="max-width:480px">
+  <div class="mh"><span class="mt" id="mend-title">Endereço do Material</span><button class="xb" onclick="closeModal('modal-estoque-end')">&times;</button></div>
+  <div class="mb">
+    <input type="hidden" id="mend-id">
+    <input type="hidden" id="mend-prod-id">
+    <div id="mend-prod-info" style="background:var(--bg3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text2)"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+      <div class="fg"><label>Rua *</label><input type="text" id="mend-rua" placeholder="Ex: A" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Box *</label><input type="text" id="mend-box" placeholder="Ex: 01"></div>
+      <div class="fg"><label>Altura *</label><input type="text" id="mend-altura" placeholder="Ex: 2"></div>
+    </div>
+    <div class="fg"><label>Quantidade neste endereço *</label><input type="number" id="mend-qty" min="0" placeholder="0"></div>
+    <div id="mend-preview" style="margin-top:12px;padding:10px 14px;background:var(--accent-hi);border-radius:8px;font-size:13px;color:var(--accent);display:none">
+      <i class="ti ti-map-pin"></i> <strong id="mend-preview-txt"></strong>
+    </div>
+  </div>
+  <div class="mf">
+    <button class="btn bg" id="mend-del-btn" style="display:none;color:var(--red)" onclick="deletarEndereco()"><i class="ti ti-trash"></i> Remover</button>
+    <div style="flex:1"></div>
+    <button class="btn bg" onclick="closeModal('modal-estoque-end')">Cancelar</button>
+    <button class="btn bp" onclick="salvarEndereco()"><i class="ti ti-check"></i> Salvar</button>
   </div>
 </div>
 </div>
@@ -2212,11 +2437,11 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var dbf = firebase.firestore();
 
-var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[],reservas:[],auditoria:[]};
+var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[],reservas:[],auditoria:[],enderecos:[]};
 var currentUser=null;
 var importData=[];
 var selectedTipo='';
-var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios','reservas','auditoria'];
+var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios','reservas','auditoria','enderecos'];
 var unsubs=[];
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
@@ -2275,7 +2500,7 @@ function setSyncStatus(ok){
 
 // Carrega tudo do Firestore e mantem em tempo real
 function initFirestoreSync(callback){
-  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false,reservas:false,auditoria:false};
+  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false,reservas:false,auditoria:false,enderecos:false};
   function checkAllLoaded(){
     if(Object.values(loaded).every(function(v){return v;})){
       callback();
@@ -2293,7 +2518,7 @@ function initFirestoreSync(callback){
       setSyncStatus(true);
       loaded[col]=true;
       checkAllLoaded();
-      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&loaded.reservas&&loaded.auditoria&&window._appStarted){
+      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&loaded.reservas&&loaded.auditoria&&loaded.enderecos&&window._appStarted){
         if(typeof renderPage==='function')renderPage(currentPage);
       }
     },function(err){
@@ -2409,6 +2634,18 @@ function gP(id){for(var i=0;i<db.produtos.length;i++)if(db.produtos[i].id===id)r
 function gEq(id){for(var i=0;i<db.equipes.length;i++)if(db.equipes[i].id===id)return db.equipes[i];return null;}
 function gCat(id){for(var i=0;i<db.categorias.length;i++)if(db.categorias[i].id===id)return db.categorias[i];return null;}
 
+// Endereços: Rua-Box-Altura
+function fmtEnd(e){ return (e.rua||'?')+'-'+(e.box||'?')+'-'+(e.altura||'?'); }
+function getEndsProduto(prodId){ return db.enderecos.filter(function(e){return e.produtoId===prodId&&e.qty>0;}); }
+function getTotalEstoquePorEnderecos(prodId){
+  return db.enderecos.filter(function(e){return e.produtoId===prodId;}).reduce(function(a,b){return a+(Number(b.qty)||0);},0);
+}
+function sincronizarQtyProduto(prodId){
+  // Recalcula o qty do produto como soma de todos os endereços e atualiza no Firestore
+  var total = db.enderecos.filter(function(e){return e.produtoId===prodId;}).reduce(function(a,b){return a+(Number(b.qty)||0);},0);
+  fsUpdate('produtos', prodId, {qty: total});
+}
+
 function skeletonRows(cols, rows){
   rows = rows || 5;
   var widths = ['w60','w80','w40','w60','w30','w80','w50','w40'];
@@ -2448,6 +2685,7 @@ var pageCfg={
   usuarios:{title:'Usuários',action:'Novo Usuário',actionFn:function(){openModal('modal-usuario');}},
   auditoria:{title:'Log de Auditoria',action:null},
   relatorios:{title:'Relatórios',action:null},
+  bi:{title:'BI Analítico',action:null},
   alertas:{title:'Alertas',action:null}
 };
 var currentPage='dashboard';
@@ -2497,6 +2735,7 @@ function renderPage(page){
   else if(page==='usuarios')renderUsuarios();
   else if(page==='auditoria')renderAuditoria();
   else if(page==='relatorios')renderRelatorios();
+  else if(page==='bi')renderBI();
   else if(page==='alertas')renderAlertas();
 }
 </script>
@@ -2646,8 +2885,48 @@ function filterEstoque(search){
   var body=document.getElementById('estoque-body');
   body.innerHTML=list.map(function(p){
     var cat=gCat(p.categoria);
-    return'<tr><td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px">'+p.codigo+'</code></td><td><strong>'+p.nome+'</strong>'+(p.local?'<br><span style="font-size:11px;color:var(--text3)">'+p.local+'</span>':'')+'</td><td>'+(cat?'<span class="badge bb">'+cat.nome+'</span>':'-')+'</td><td><span style="font-size:18px;font-weight:700;color:'+stockColor(p)+'">'+p.qty+'</span><div class="sbar"><div class="sbf" style="width:'+stockPct(p)+'%;background:'+stockColor(p)+'"></div></div></td><td style="color:var(--text2)">'+p.unidade+'</td><td>'+p.min+'</td><td>'+statusBadge(p)+'</td><td><div style="display:flex;gap:5px"><button class="btn bg bsm" onclick="abrirDetalheProduto(\''+p.id+'\')" title="Histórico"><i class="ti ti-history"></i></button><button class="btn bg bsm" onclick="showQR(\''+p.id+'\')" title="QR Code"><i class="ti ti-qrcode"></i></button>'+(canEdit()?'<button class="btn bg bsm" onclick="editProduto(\''+p.id+'\')"><i class="ti ti-edit"></i></button><button class="btn bg bsm" style="color:var(--red)" onclick="delProduto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')+'</div></td></tr>';
+    var ends=getEndsProduto(p.id);
+    var endBtn = ends.length>0
+      ? '<button class="btn bg bsm" onclick="toggleEndsEstoque(\''+p.id+'\')" title="'+ends.length+' endereço(s)" style="color:var(--teal)"><i class="ti ti-map-pin"></i> '+ends.length+'</button>'
+      : '<button class="btn bg bsm" onclick="abrirModalEstoque(\''+p.id+'\')" title="Adicionar endereço" style="color:var(--text3)"><i class="ti ti-map-pin-plus"></i></button>';
+    var subRow = ends.length>0
+      ? '<tr id="ends-row-'+p.id+'" style="display:none"><td colspan="8" style="padding:0 0 4px 24px">'
+          +'<div style="display:flex;gap:8px;flex-wrap:wrap;padding:8px 0">'
+          +ends.map(function(e){
+            return '<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:8px">'
+              +'<i class="ti ti-map-pin" style="color:var(--teal);font-size:13px"></i>'
+              +'<span style="font-weight:600;color:var(--text)">'+fmtEnd(e)+'</span>'
+              +'<span style="color:var(--text2)">'+e.qty+' '+p.unidade+'</span>'
+              +(canEdit()?'<button onclick="editarEnderecoEstoque(\''+e.id+'\')" style="background:none;border:none;color:var(--text3);cursor:pointer;padding:0;font-size:12px"><i class="ti ti-edit"></i></button>':'')
+              +'</div>';
+          }).join('')
+          +'<button onclick="abrirModalEstoque(\''+p.id+'\')" class="btn bg bsm" style="color:var(--teal)"><i class="ti ti-plus"></i> Novo</button>'
+          +'</div></td></tr>'
+      : '';
+    return '<tr id="prod-row-'+p.id+'">'
+      +'<td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px">'+p.codigo+'</code></td>'
+      +'<td><strong>'+p.nome+'</strong></td>'
+      +'<td>'+(cat?'<span class="badge bb">'+cat.nome+'</span>':'-')+'</td>'
+      +'<td><span style="font-size:18px;font-weight:700;color:'+stockColor(p)+'">'+p.qty+'</span>'
+        +(ends.length>0?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+ends.length+' endereço(s)</div>':'')
+        +'<div class="sbar"><div class="sbf" style="width:'+stockPct(p)+'%;background:'+stockColor(p)+'"></div></div></td>'
+      +'<td style="color:var(--text2)">'+p.unidade+'</td>'
+      +'<td>'+p.min+'</td>'
+      +'<td>'+statusBadge(p)+'</td>'
+      +'<td><div style="display:flex;gap:5px">'
+        +endBtn
+        +'<button class="btn bg bsm" onclick="abrirDetalheProduto(\''+p.id+'\')" title="Histórico"><i class="ti ti-history"></i></button>'
+        +'<button class="btn bg bsm" onclick="showQR(\''+p.id+'\')" title="QR Code"><i class="ti ti-qrcode"></i></button>'
+        +(canEdit()?'<button class="btn bg bsm" onclick="editProduto(\''+p.id+'\')"><i class="ti ti-edit"></i></button>'
+          +'<button class="btn bg bsm" style="color:var(--red)" onclick="delProduto(\''+p.id+'\')"><i class="ti ti-trash"></i></button>':'')
+      +'</div></td></tr>'
+      + subRow;
   }).join('')||'<tr><td colspan="8"><div class="es"><i class="ti ti-box-off"></i><div class="es-t">Nenhum produto encontrado</div><div class="es-s">Cadastre um novo produto ou ajuste os filtros de busca.</div></div></td></tr>';
+}
+
+function toggleEndsEstoque(prodId){
+  var row=document.getElementById('ends-row-'+prodId);
+  if(row) row.style.display = row.style.display==='none'?'table-row':'none';
 }
 
 function getProductScanURL(id){
@@ -3389,6 +3668,94 @@ function renderReservas(){
     return'<tr><td>'+(r.servico||'-')+'</td><td>'+(r.pep||'-')+'</td><td>'+(r.reserva||'-')+'</td><td>'+(p?p.nome:'[Produto removido]')+'</td><td style="font-weight:700">'+r.qtd+' '+(p?p.unidade:'')+'</td><td>'+(canEdit()?'<div style="display:flex;gap:6px;justify-content:flex-end"><button class="btn bg bsm" onclick="editReserva(\''+r.id+'\')"><i class="ti ti-edit"></i></button><button class="btn bg bsm" style="color:var(--red)" onclick="delReserva(\''+r.id+'\')"><i class="ti ti-trash"></i></button></div>':'')+'</td></tr>';
   }).join('');
 }
+// ===================== ENDEREÇOS DE ESTOQUE =====================
+function abrirModalEstoque(prodId, endId){
+  var p=gP(prodId); if(!p) return;
+  openModal('modal-estoque-end');
+  document.getElementById('mend-prod-id').value=prodId;
+  document.getElementById('mend-prod-info').innerHTML='<strong>'+p.nome+'</strong> <span style="opacity:.6">'+p.codigo+'</span>';
+
+  // Preenchendo inputs de Rua/Box/Altura com máscara de preview
+  ['mend-rua','mend-box','mend-altura'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.oninput=atualizarPreviewEnd;
+  });
+
+  if(endId){
+    // Editar endereço existente
+    var e=null; for(var i=0;i<db.enderecos.length;i++) if(db.enderecos[i].id===endId){e=db.enderecos[i];break;}
+    if(!e) return;
+    document.getElementById('mend-title').textContent='Editar Endereço';
+    document.getElementById('mend-id').value=e.id;
+    document.getElementById('mend-rua').value=e.rua||'';
+    document.getElementById('mend-box').value=e.box||'';
+    document.getElementById('mend-altura').value=e.altura||'';
+    document.getElementById('mend-qty').value=e.qty||0;
+    document.getElementById('mend-del-btn').style.display='inline-flex';
+  } else {
+    // Novo endereço
+    document.getElementById('mend-title').textContent='Novo Endereço';
+    document.getElementById('mend-id').value='';
+    document.getElementById('mend-rua').value='';
+    document.getElementById('mend-box').value='';
+    document.getElementById('mend-altura').value='';
+    document.getElementById('mend-qty').value='';
+    document.getElementById('mend-del-btn').style.display='none';
+  }
+  atualizarPreviewEnd();
+}
+function atualizarPreviewEnd(){
+  var r=(document.getElementById('mend-rua').value||'').trim().toUpperCase();
+  var b=(document.getElementById('mend-box').value||'').trim();
+  var a=(document.getElementById('mend-altura').value||'').trim();
+  var prev=document.getElementById('mend-preview');
+  var txt=document.getElementById('mend-preview-txt');
+  if(r&&b&&a){
+    prev.style.display='block';
+    txt.textContent='Rua '+r+' — Box '+b+' — Altura '+a;
+  } else {
+    prev.style.display='none';
+  }
+}
+function editarEnderecoEstoque(endId){
+  var e=null; for(var i=0;i<db.enderecos.length;i++) if(db.enderecos[i].id===endId){e=db.enderecos[i];break;}
+  if(e) abrirModalEstoque(e.produtoId, endId);
+}
+function salvarEndereco(){
+  var prodId=document.getElementById('mend-prod-id').value;
+  var rua=(document.getElementById('mend-rua').value||'').trim().toUpperCase();
+  var box=(document.getElementById('mend-box').value||'').trim();
+  var altura=(document.getElementById('mend-altura').value||'').trim();
+  var qty=Number(document.getElementById('mend-qty').value)||0;
+  if(!rua||!box||!altura){toast('Preencha Rua, Box e Altura!','error');return;}
+  var id=document.getElementById('mend-id').value;
+  var data={produtoId:prodId, rua:rua, box:box, altura:altura, qty:qty};
+  if(id){
+    fsUpdate('enderecos',id,data);
+    logAuditoria('editar','endereco','Endereço '+rua+'-'+box+'-'+altura+' atualizado: '+qty+' un');
+  } else {
+    // Verificar se já existe esse endereço para esse produto
+    var existe=db.enderecos.find(function(e){return e.produtoId===prodId&&e.rua===rua&&e.box===box&&e.altura===altura;});
+    if(existe){ toast('Esse endereço já está cadastrado para este produto. Use Editar.','error'); return; }
+    fsSave('enderecos', Object.assign({id:genId()}, data));
+    logAuditoria('criar','endereco','Novo endereço '+rua+'-'+box+'-'+altura+': '+qty+' un');
+  }
+  // Atualizar qty total do produto
+  setTimeout(function(){ sincronizarQtyProduto(prodId); }, 500);
+  closeModal('modal-estoque-end');
+  toast('Endereço salvo!','success');
+}
+async function deletarEndereco(){
+  var id=document.getElementById('mend-id').value;
+  var prodId=document.getElementById('mend-prod-id').value;
+  var ok=await confirmDialog('O endereço será removido. O estoque desse local será zerado.', {title:'Remover endereço?', confirmText:'Remover'});
+  if(!ok) return;
+  fsDelete('enderecos', id);
+  setTimeout(function(){ sincronizarQtyProduto(prodId); }, 500);
+  closeModal('modal-estoque-end');
+  toast('Endereço removido','info');
+}
+
 function salvarReserva(){
   var servico=document.getElementById('mres-servico').value.trim();
   var prod=document.getElementById('mres-prod').value;
@@ -3904,6 +4271,291 @@ function renderRelatorios(){
     return'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>'+e.nome+'</span><strong>'+e.qty+'</strong></div><div style="height:8px;background:var(--bg3);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+Math.round((e.qty/maxE)*100)+'%;background:var(--teal);border-radius:4px"></div></div></div>';
   }).join('')||'<p style="color:var(--text3)">Sem dados</p>';
 }
+
+// ===================== BI ANALÍTICO — VISUAL IMPACTANTE =====================
+var _biCharts = {};
+var _biClockTimer = null;
+
+function biDestroyAll(){
+  Object.keys(_biCharts).forEach(function(k){ try{_biCharts[k].destroy();}catch(e){} });
+  _biCharts = {};
+}
+
+var BI_COLORS = ['#2dd4bf','#5b8def','#a78bfa','#22c55e','#f59e0b','#ef4444','#38bdf8','#fb7185','#f97316','#e879f9'];
+
+function biChart(id, type, labels, datasets, opts){
+  var ctx = document.getElementById(id);
+  if(!ctx) return;
+  if(_biCharts[id]) _biCharts[id].destroy();
+  var isDark = true;
+  var gridColor = 'rgba(255,255,255,.05)';
+  var tickColor = 'rgba(255,255,255,.3)';
+  _biCharts[id] = new Chart(ctx, {
+    type: type,
+    data: { labels: labels, datasets: datasets },
+    options: Object.assign({
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: tickColor, font:{size:10.5}, boxWidth:10, padding:12 } },
+        tooltip: { backgroundColor:'#0d1b3e', titleColor:'#fff', bodyColor:'rgba(255,255,255,.6)', borderColor:'rgba(45,212,191,.3)', borderWidth:1, padding:10 }
+      },
+      scales: (type==='bar'||type==='line') ? {
+        x:{ ticks:{color:tickColor,font:{size:10}}, grid:{color:gridColor} },
+        y:{ ticks:{color:tickColor,font:{size:10}}, grid:{color:gridColor}, beginAtZero:true }
+      } : {}
+    }, opts||{})
+  });
+}
+
+// Relógio em tempo real
+function biStartClock(){
+  if(_biClockTimer) clearInterval(_biClockTimer);
+  function tick(){
+    var el = document.getElementById('bi-clock');
+    if(!el) return;
+    var now = new Date();
+    el.textContent = String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+  }
+  tick(); _biClockTimer = setInterval(tick, 1000);
+}
+
+// Ticker rolando com dados
+function biRenderTicker(saidas, mes, ano){
+  var el = document.getElementById('bi-ticker-inner');
+  if(!el) return;
+  var meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  // Construir itens do ticker: projetos com mais saídas + alertas de estoque
+  var projMap = {};
+  saidas.forEach(function(s){ var k=s.projetoTxt||'Sem projeto'; projMap[k]=(projMap[k]||0)+s.qty; });
+  var criticos = db.produtos.filter(function(p){return p.qty===0;});
+  var eqMap = {};
+  saidas.forEach(function(s){ var eq=gEq(s.equipe); var k=eq?eq.nome:'Sem equipe'; eqMap[k]=(eqMap[k]||0)+s.qty; });
+
+  var items = [];
+  // Top projetos
+  Object.keys(projMap).sort(function(a,b){return projMap[b]-projMap[a];}).slice(0,6).forEach(function(k){
+    items.push('<div class="bi-tick-item"><span class="ti-name">'+k+'</span> <span>•</span> <span class="ti-val up">'+projMap[k]+' itens</span></div>');
+  });
+  // Alertas de estoque zerado
+  criticos.slice(0,4).forEach(function(p){
+    items.push('<div class="bi-tick-item"><i class="ti ti-alert-triangle" style="color:#ef4444;font-size:11px"></i> <span class="ti-name">'+p.nome+'</span> <span class="ti-val down">ZERADO</span></div>');
+  });
+  // Top equipes
+  Object.keys(eqMap).sort(function(a,b){return eqMap[b]-eqMap[a];}).slice(0,4).forEach(function(k){
+    items.push('<div class="bi-tick-item"><i class="ti ti-users" style="color:#2dd4bf;font-size:11px"></i> <span class="ti-name">'+k+'</span> <span class="ti-val up">'+eqMap[k]+' itens</span></div>');
+  });
+  // Contexto do período
+  items.push('<div class="bi-tick-item"><i class="ti ti-calendar" style="color:#5b8def;font-size:11px"></i> <span class="ti-name">Período</span> <span class="ti-val" style="color:#5b8def">'+meses[mes-1]+'/'+ano+'</span></div>');
+
+  // Duplicar pra loop contínuo
+  var html = items.join('') + items.join('');
+  el.innerHTML = html;
+}
+
+function renderBI(){
+  if(typeof Chart === 'undefined'){ setTimeout(renderBI, 300); return; }
+  biDestroyAll();
+  biStartClock();
+
+  // Seletores mês/ano
+  var mesEl = document.getElementById('bi-mes');
+  var anoEl = document.getElementById('bi-ano');
+  var agora = new Date();
+  var meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  if(mesEl && !mesEl.options.length){
+    meses.forEach(function(m,i){ var o=document.createElement('option'); o.value=i+1; o.textContent=m; mesEl.appendChild(o); });
+    mesEl.value = agora.getMonth()+1;
+  }
+  if(anoEl && !anoEl.options.length){
+    for(var y=2023;y<=agora.getFullYear()+1;y++){ var o=document.createElement('option'); o.value=y; o.textContent=y; anoEl.appendChild(o); }
+    anoEl.value = agora.getFullYear();
+  }
+  var mes = parseInt(mesEl.value);
+  var ano = parseInt(anoEl.value);
+  var mesStr = String(ano)+'-'+String(mes).padStart(2,'0');
+
+  var saidas = db.saidas.filter(function(s){ return (s.data||'').startsWith(mesStr); });
+  var entradas = db.entradas.filter(function(e){ return (e.data||'').startsWith(mesStr); });
+
+  document.getElementById('bi-sub').textContent = meses[mes-1]+' / '+ano+' • KFLOW Logística • '+db.projetos.filter(function(p){return p.status!=='liquidado';}).length+' projetos ativos';
+
+  biRenderTicker(saidas, mes, ano);
+
+  // ── STATUS PILL ──────────────────────────────────────────────────────────
+  var criticos = db.produtos.filter(function(p){return p.qty===0;}).length;
+  var sapPend = 0;
+  db.projetos.filter(function(p){return p.pep&&p.status!=='liquidado';}).forEach(function(p){
+    var st = calcStatusSap(p.num||p.nome);
+    sapPend += Object.values(st).filter(function(v){return v.status==='adicionar'||v.status==='naoenc';}).length;
+  });
+  var pill = document.getElementById('bi-status-pill');
+  if(pill){
+    if(criticos>3||sapPend>5){ pill.className='bi-status-pill crit'; pill.textContent='ATENÇÃO NECESSÁRIA'; }
+    else if(criticos>0||sapPend>0){ pill.className='bi-status-pill warn'; pill.textContent='PENDÊNCIAS'; }
+    else { pill.className='bi-status-pill ok'; pill.textContent='OPERACIONAL'; }
+  }
+
+  // ── KPIs ─────────────────────────────────────────────────────────────────
+  var totalItens = saidas.reduce(function(a,b){return a+b.qty;},0);
+  var totalEnt = entradas.filter(function(e){return e.tipoMov!=='Devolução';}).reduce(function(a,b){return a+b.qty;},0);
+  var totalDev = entradas.filter(function(e){return e.tipoMov==='Devolução';}).reduce(function(a,b){return a+b.qty;},0);
+  var projPeriodo = new Set(saidas.map(function(s){return s.projetoTxt;}).filter(Boolean)).size;
+  var zerados = db.produtos.filter(function(p){return p.qty===0;}).length;
+  var semPep = db.projetos.filter(function(p){return (!p.pep||!p.pep.trim())&&p.status!=='liquidado';}).length;
+
+  // Comparação com mês anterior
+  var mesAnt = mes===1?12:mes-1;
+  var anoAnt = mes===1?ano-1:ano;
+  var mesStrAnt = String(anoAnt)+'-'+String(mesAnt).padStart(2,'0');
+  var saidasAnt = db.saidas.filter(function(s){return (s.data||'').startsWith(mesStrAnt);});
+  var totalItensAnt = saidasAnt.reduce(function(a,b){return a+b.qty;},0);
+  var delta = totalItensAnt ? Math.round(((totalItens-totalItensAnt)/totalItensAnt)*100) : 0;
+
+  var kpis = [
+    {val:saidas.length, lbl:'Saídas no período', sub:totalItens+' itens movimentados', ic:'ti-package-export', kc:'#2dd4bf', delta:delta},
+    {val:totalItens, lbl:'Itens retirados', sub:'vs. '+totalItensAnt+' no mês anterior', ic:'ti-arrow-down-right-circle', kc:'#5b8def', delta:null},
+    {val:projPeriodo, lbl:'Projetos com saída', sub:'de '+db.projetos.filter(function(p){return p.status!=='liquidado';}).length+' ativos', ic:'ti-folders', kc:'#a78bfa', delta:null},
+    {val:totalEnt, lbl:'Itens recebidos', sub:totalDev+' devoluções no período', ic:'ti-package-import', kc:'#22c55e', delta:null},
+    {val:zerados, lbl:'Materiais zerados', sub:db.produtos.filter(function(p){return p.qty>0&&p.qty<=p.min;}).length+' abaixo do mínimo', ic:'ti-alert-triangle', kc:zerados>0?'#ef4444':'#22c55e', delta:null},
+    {val:sapPend, lbl:'Pendências SAP', sub:semPep+' projetos sem PEP', ic:'ti-robot', kc:sapPend>0?'#f59e0b':'#22c55e', delta:null},
+  ];
+  document.getElementById('bi-kpis').innerHTML = kpis.map(function(k){
+    var dEl = '';
+    if(k.delta!==null) dEl = '<div class="bi-kpi-delta '+(k.delta>=0?'up':'down')+'">'+(k.delta>=0?'▲':'▼')+Math.abs(k.delta)+'%</div>';
+    return '<div class="bi-kpi" style="--kc:'+k.kc+'">'+dEl
+      +'<div class="bi-kpi-icon"><i class="ti '+k.ic+'"></i></div>'
+      +'<div class="bi-kpi-val">'+k.val+'</div>'
+      +'<div class="bi-kpi-lbl">'+k.lbl+'</div>'
+      +'<div class="bi-kpi-sub">'+k.sub+'</div>'
+      +'</div>';
+  }).join('');
+
+  // ── HISTÓRICO 12 MESES ────────────────────────────────────────────────────
+  var histLabels=[], histSaidas=[], histEntradas=[];
+  for(var i=11;i>=0;i--){
+    var d=new Date(ano,mes-1-i,1);
+    var ms=String(d.getFullYear())+'-'+String(d.getMonth()+1).padStart(2,'0');
+    histLabels.push(meses[d.getMonth()].substr(0,3)+'/'+String(d.getFullYear()).substr(2));
+    histSaidas.push(db.saidas.filter(function(s){return (s.data||'').startsWith(ms);}).reduce(function(a,b){return a+b.qty;},0));
+    histEntradas.push(db.entradas.filter(function(e){return (e.data||'').startsWith(ms)&&e.tipoMov!=='Devolução';}).reduce(function(a,b){return a+b.qty;},0));
+  }
+  document.getElementById('bi-badge-hist').textContent = 'últimos 12 meses';
+  biChart('bi-chart-hist','line',histLabels,[
+    {label:'Saídas', data:histSaidas, borderColor:'#2dd4bf', backgroundColor:'rgba(45,212,191,.08)', borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#2dd4bf', tension:.4, fill:true},
+    {label:'Entradas', data:histEntradas, borderColor:'#5b8def', backgroundColor:'rgba(91,141,239,.06)', borderWidth:2, pointRadius:3, pointBackgroundColor:'#5b8def', tension:.4, fill:true}
+  ]);
+
+  // ── POR EQUIPE ────────────────────────────────────────────────────────────
+  var eqMap={};
+  saidas.forEach(function(s){var eq=gEq(s.equipe);var k=eq?eq.nome:'Sem equipe';eqMap[k]=(eqMap[k]||0)+s.qty;});
+  var eqKeys=Object.keys(eqMap).sort(function(a,b){return eqMap[b]-eqMap[a];}).slice(0,8);
+  biChart('bi-chart-equipes','doughnut',eqKeys,
+    [{data:eqKeys.map(function(k){return eqMap[k];}), backgroundColor:BI_COLORS, borderWidth:0, hoverOffset:8}],
+    {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}});
+
+  // ── SAÍDAS POR DIA ───────────────────────────────────────────────────────
+  var diasMap={};
+  var diasNoMes=new Date(ano,mes,0).getDate();
+  for(var d2=1;d2<=diasNoMes;d2++) diasMap[String(d2).padStart(2,'0')]=0;
+  saidas.forEach(function(s){var dia=(s.data||'').split('-')[2];if(dia)diasMap[dia]=(diasMap[dia]||0)+s.qty;});
+  var diasKeys=Object.keys(diasMap).sort();
+  document.getElementById('bi-badge-dias').textContent=saidas.length+' saídas';
+  biChart('bi-chart-dias','bar',diasKeys.map(function(d){return parseInt(d);}),
+    [{label:'Itens', data:diasKeys.map(function(d){return diasMap[d];}),
+      backgroundColor:diasKeys.map(function(d){return diasMap[d]>0?'rgba(45,212,191,.7)':'rgba(255,255,255,.04)';}),
+      borderRadius:4, borderSkipped:false}]);
+
+  // ── POR TIPO ─────────────────────────────────────────────────────────────
+  var tipoMap={};
+  saidas.forEach(function(s){var t=s.tipoServ||'Não informado';tipoMap[t]=(tipoMap[t]||0)+s.qty;});
+  var tipoKeys=Object.keys(tipoMap).sort(function(a,b){return tipoMap[b]-tipoMap[a];});
+  biChart('bi-chart-tipos','pie',tipoKeys,
+    [{data:tipoKeys.map(function(k){return tipoMap[k];}), backgroundColor:BI_COLORS, borderWidth:0}],
+    {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}});
+
+  // ── RANKING RESPONSÁVEIS ─────────────────────────────────────────────────
+  var respMap={};
+  saidas.forEach(function(s){var r=s.resp||'Não informado';respMap[r]=(respMap[r]||0)+s.qty;});
+  var respKeys=Object.keys(respMap).sort(function(a,b){return respMap[b]-respMap[a];}).slice(0,8);
+  var maxR=Math.max(1,respMap[respKeys[0]]||1);
+  var rankEl=document.getElementById('bi-rank-resp');
+  if(rankEl) rankEl.innerHTML=respKeys.map(function(k,i){
+    var cls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    var pct=Math.round((respMap[k]/maxR)*100);
+    return '<div class="bi-rank-item">'
+      +'<div class="bi-rank-num '+cls+'">'+(i+1)+'</div>'
+      +'<div style="flex:1;min-width:0">'
+      +'<div class="bi-rank-name">'+k+'</div>'
+      +'<div class="bi-rank-bar-wrap"><div class="bi-rank-bar" style="width:'+pct+'%"></div></div>'
+      +'</div>'
+      +'<div class="bi-rank-val">'+respMap[k]+'</div>'
+      +'</div>';
+  }).join('');
+
+  // ── TOP MATERIAIS ────────────────────────────────────────────────────────
+  var matMap={};
+  saidas.forEach(function(s){var p=gP(s.produto);var k=p?(p.nome.length>28?p.nome.substr(0,25)+'...':p.nome):'[?]';matMap[k]=(matMap[k]||0)+s.qty;});
+  var matKeys=Object.keys(matMap).sort(function(a,b){return matMap[b]-matMap[a];}).slice(0,10).reverse();
+  biChart('bi-chart-materiais','bar',matKeys,
+    [{label:'Qtd. retirada', data:matKeys.map(function(k){return matMap[k];}),
+      backgroundColor:matKeys.map(function(_,i){return BI_COLORS[i%BI_COLORS.length]+'bb';}), borderRadius:3}],
+    {indexAxis:'y'});
+
+  // ── SITUAÇÃO ESTOQUE ─────────────────────────────────────────────────────
+  var zer2=db.produtos.filter(function(p){return p.qty===0;}).length;
+  var crit2=db.produtos.filter(function(p){return p.qty>0&&p.qty<=p.min;}).length;
+  var ok2=db.produtos.length-zer2-crit2;
+  biChart('bi-chart-estoque','doughnut',['OK','Crítico','Zerado'],
+    [{data:[ok2,crit2,zer2], backgroundColor:['#22c55e','#f59e0b','#ef4444'], borderWidth:0, hoverOffset:8}],
+    {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}});
+
+  // ── RECONCILIAÇÃO SAP ─────────────────────────────────────────────────────
+  var sapSt={consumir:0,parcial:0,adicionar:0,naoenc:0};
+  db.projetos.filter(function(p){return p.pep&&p.pep.trim()&&p.status!=='liquidado';}).forEach(function(p){
+    var st=calcStatusSap(p.num||p.nome);
+    Object.values(st).forEach(function(v){if(sapSt[v.status]!==undefined)sapSt[v.status]++;});
+  });
+  var sapTot=sapSt.consumir+sapSt.parcial+sapSt.adicionar+sapSt.naoenc;
+  document.getElementById('bi-badge-sap').textContent=(sapSt.adicionar+sapSt.naoenc)+' pendências';
+  biChart('bi-chart-sap','doughnut',['Consumir','Parcial','Adicionar','Sem reserva'],
+    [{data:[sapSt.consumir,sapSt.parcial,sapSt.adicionar,sapSt.naoenc],
+      backgroundColor:['#2dd4bf','#a78bfa','#f59e0b','#ef4444'], borderWidth:0, hoverOffset:8}],
+    {plugins:{legend:{position:'bottom',labels:{padding:10,font:{size:10}}}}});
+
+  // ── GRID DE PROJETOS ─────────────────────────────────────────────────────
+  var projMap2={};
+  saidas.forEach(function(s){var k=s.projetoTxt||'Sem projeto';projMap2[k]=(projMap2[k]||0)+s.qty;});
+  var projArr=Object.keys(projMap2).sort(function(a,b){return projMap2[b]-projMap2[a];});
+  var maxP=Math.max(1,projMap2[projArr[0]]||1);
+  document.getElementById('bi-badge-projetos').textContent=projArr.length+' projetos';
+  var gridEl=document.getElementById('bi-proj-grid');
+  if(gridEl) gridEl.innerHTML=projArr.map(function(k){
+    var v=projMap2[k]; var pct=Math.round((v/maxP)*100);
+    var cls=pct<30?'crit':pct<60?'warn':'';
+    return '<div class="bi-proj-card '+cls+'" onclick="irProjetosBI()">'  
+      +'<div class="bi-proj-card-name">'+k+'</div>'
+      +'<div class="bi-proj-card-val">'+v+'</div>'
+      +'<div class="bi-proj-card-sub">itens retirados</div>'
+      +'<div style="margin-top:6px;height:3px;background:rgba(255,255,255,.06);border-radius:2px"><div style="width:'+pct+'%;height:100%;border-radius:2px;background:currentColor;opacity:.6"></div></div>'
+      +'</div>';
+  }).join('')||'<div style="color:rgba(255,255,255,.3);font-size:12px;padding:20px">Nenhuma saída no período</div>';
+
+  // ── TABELA TOP SAÍDAS ─────────────────────────────────────────────────────
+  var topS=saidas.slice().sort(function(a,b){return b.qty-a.qty;}).slice(0,20);
+  document.getElementById('bi-badge-tabela').textContent='top '+topS.length;
+  document.getElementById('bi-tabela-body').innerHTML=topS.map(function(s){
+    var p=gP(s.produto); var eq=gEq(s.equipe);
+    return '<tr><td>'+fmtDate(s.data)+'</td><td><strong>'+(p?p.nome:'?')+'</strong></td>'
+      +'<td><strong style="color:#2dd4bf">'+s.qty+'</strong> '+(p?p.unidade:'')+'</td>'
+      +'<td><span style="background:rgba(91,141,239,.15);color:#5b8def;border-radius:6px;padding:2px 8px;font-size:11px">'+(s.projetoTxt||'-')+'</span></td>'
+      +'<td>'+(eq?eq.nome:'-')+'</td><td>'+tipoBadge(s.tipoServ)+'</td>'
+      +'<td>'+(s.resp||'-')+'</td></tr>';
+  }).join('')||'<tr><td colspan="7" style="text-align:center;padding:24px;color:rgba(255,255,255,.25)">Nenhuma saída no período selecionado</td></tr>';
+}
+
+
+function irProjetosBI(){ navigate('projetos'); }
 
 function renderAlertas(){
   var list=db.produtos.filter(function(p){return p.qty<=p.min;});
@@ -4476,14 +5128,93 @@ function renderScanPage(produto){
     html += '</div></div>';
   }
 
-  html += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:9px">TIPO DE MOVIMENTAÇÃO</div><div class="tbtns">';
+  html += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:600;color:#8b92a0;margin-bottom:9px">TIPO DE MOVIMENTAÇÃO</div><div class="tbtns" style="grid-template-columns:1fr 1fr;gap:8px">';
   var movSel = window._scSessao.mov;
   html += '<div class="tb ent'+(movSel==='entrada'?' sel':'')+'" onclick="sMov(this,\'entrada\')">↑ ENTRADA</div>';
   html += '<div class="tb sai'+(movSel==='saida'?' sel':'')+'" onclick="sMov(this,\'saida\')">↓ SAÍDA</div>';
+  html += '<div class="tb'+(movSel==='estoque'?' sel':'')+'" style="background:'+(movSel==='estoque'?'rgba(45,212,191,.2)':'rgba(255,255,255,.04)')+';border-color:'+(movSel==='estoque'?'#2dd4bf':'rgba(255,255,255,.12)')+';color:'+(movSel==='estoque'?'#2dd4bf':'#8b92a0')+'" onclick="sMov(this,\'estoque\')"><i class="ti ti-map-pin"></i> ENDEREÇO</div>';
+  html += '<div class="tb'+(movSel==='inventario'?' sel':'')+'" style="background:'+(movSel==='inventario'?'rgba(167,139,250,.2)':'rgba(255,255,255,.04)')+';border-color:'+(movSel==='inventario'?'#a78bfa':'rgba(255,255,255,.12)')+';color:'+(movSel==='inventario'?'#a78bfa':'#8b92a0')+'" onclick="sMov(this,\'inventario\')"><i class="ti ti-clipboard-list"></i> INVENTÁRIO</div>';
   html += '</div></div>';
 
-  var formDisplay = movSel ? 'block' : 'none';
-  html += '<div class="fs" id="sc-form" style="display:'+formDisplay+'"><h3>QUANTIDADE</h3><div class="fi"><div class="qc"><button onclick="sQ(-1)">−</button><input type="number" id="sc-q" value="1" min="1" inputmode="numeric"><button onclick="sQ(1)">+</button></div></div><button class="abtn" style="background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;width:100%;margin-top:4px" onclick="addI()">+ Adicionar à Lista</button></div>';
+  // Formulário padrão (Entrada/Saída) — só aparece quando não é Estoque nem Inventário
+  var formDisplay = (movSel==='entrada'||movSel==='saida') ? 'block' : 'none';
+  html += '<div class="fs" id="sc-form" style="display:'+formDisplay+'">';
+  // Seleção de endereço para SAÍDA
+  if(movSel==='saida'){
+    var endsDisp = getEndsProduto(window._scProd.id);
+    if(endsDisp.length>0){
+      html += '<div class="fi" id="sc-end-fi"><label>RETIRAR DE QUAL ENDEREÇO?</label>';
+      html += '<div style="display:flex;flex-direction:column;gap:8px;margin-top:6px">';
+      endsDisp.forEach(function(e){
+        html += '<label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;cursor:pointer">'
+          +'<input type="radio" name="sc-end" value="'+e.id+'" '+(endsDisp.length===1?'checked':'')+' style="accent-color:#2dd4bf;width:18px;height:18px;flex-shrink:0">'
+          +'<div><div style="font-weight:600;font-size:14px;color:#fff"><i class="ti ti-map-pin" style="color:#2dd4bf"></i> '+fmtEnd(e)+'</div>'
+          +'<div style="font-size:12px;color:#8b92a0">Disponível: <strong style="color:#2dd4bf">'+e.qty+'</strong> '+window._scProd.unidade+'</div></div>'
+          +'</label>';
+      });
+      html += '</div></div>';
+    }
+  }
+  html += '<h3>QUANTIDADE</h3><div class="fi"><div class="qc"><button onclick="sQ(-1)">−</button><input type="number" id="sc-q" value="1" min="1" inputmode="numeric"><button onclick="sQ(1)">+</button></div></div>';
+  html += '<button class="abtn" style="background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;width:100%;margin-top:4px" onclick="addI()">+ Adicionar à Lista</button>';
+  html += '</div>';
+
+  // Formulário de ENDEREÇO (modo Estoque)
+  var endsExist = getEndsProduto(window._scProd.id);
+  var endDisplay = movSel==='estoque' ? 'block' : 'none';
+  html += '<div class="fs" id="sc-end-form" style="display:'+endDisplay+'">';
+  html += '<h3>ENDEREÇOS DESTE MATERIAL</h3>';
+  if(endsExist.length>0){
+    html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
+    endsExist.forEach(function(e){
+      html += '<div style="background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.2);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px">'
+        +'<i class="ti ti-map-pin" style="color:#2dd4bf;font-size:18px"></i>'
+        +'<div style="flex:1"><div style="font-weight:600;color:#fff">'+fmtEnd(e)+'</div><div style="font-size:12px;color:#8b92a0">'+e.qty+' '+window._scProd.unidade+'</div></div>'
+        +'<button onclick="scEditarEndereco(\''+e.id+'\')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#8b92a0;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px"><i class="ti ti-edit"></i> Editar</button>'
+        +'</div>';
+    });
+    html += '</div>';
+    html += '<div style="font-size:12px;color:#8b92a0;margin-bottom:14px;padding:10px;background:rgba(255,255,255,.03);border-radius:8px">Total em estoque: <strong style="color:#2dd4bf">'+getTotalEstoquePorEnderecos(window._scProd.id)+'</strong> '+window._scProd.unidade+'</div>';
+  }
+  html += '<h3 style="margin-bottom:10px">NOVO ENDEREÇO</h3>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
+    +'<div class="fi" style="margin:0"><label style="font-size:10px">RUA</label><input type="text" id="sc-end-rua" placeholder="A" style="text-align:center;text-transform:uppercase"></div>'
+    +'<div class="fi" style="margin:0"><label style="font-size:10px">BOX</label><input type="text" id="sc-end-box" placeholder="01" style="text-align:center"></div>'
+    +'<div class="fi" style="margin:0"><label style="font-size:10px">ALTURA</label><input type="text" id="sc-end-alt" placeholder="1" style="text-align:center"></div>'
+    +'</div>';
+  html += '<div class="fi"><label>QUANTIDADE NESTE ENDEREÇO</label><div class="qc"><button onclick="sQEnd(-1)">−</button><input type="number" id="sc-end-qty" value="0" min="0" inputmode="numeric"><button onclick="sQEnd(1)">+</button></div></div>';
+  html += '<button class="abtn" style="background:#2dd4bf;color:#000;border:none;font-weight:700;margin-top:8px" onclick="scSalvarEndereco()"><i class="ti ti-map-pin-plus"></i> Salvar Endereço</button>';
+  html += '</div>';
+
+  // Formulário de INVENTÁRIO
+  var invDisplay = movSel==='inventario' ? 'block' : 'none';
+  html += '<div class="fs" id="sc-inv-form" style="display:'+invDisplay+'">';
+  html += '<h3>INVENTÁRIO — CONTAGEM FÍSICA</h3>';
+  if(endsExist.length>0){
+    html += '<div style="font-size:12px;color:#8b92a0;margin-bottom:14px">Ajuste a quantidade real de cada endereço:</div>';
+    html += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">';
+    endsExist.forEach(function(e){
+      html += '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+        +'<i class="ti ti-map-pin" style="color:#a78bfa"></i>'
+        +'<span style="font-weight:600;color:#fff">'+fmtEnd(e)+'</span>'
+        +'<span style="font-size:11px;color:#8b92a0">(antes: '+e.qty+' un)</span>'
+        +'</div>'
+        +'<div class="qc"><button onclick="var i=document.getElementById(\'inv-'+e.id+'\');i.value=Math.max(0,parseInt(i.value||0)-1)">−</button>'
+        +'<input type="number" id="inv-'+e.id+'" value="'+e.qty+'" min="0" inputmode="numeric" style="background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.3)">'
+        +'<button onclick="var i=document.getElementById(\'inv-'+e.id+'\');i.value=parseInt(i.value||0)+1">+</button></div>'
+        +'</div>';
+    });
+    html += '</div>';
+    html += '<button class="abtn" style="background:#a78bfa;color:#000;border:none;font-weight:700" onclick="scSalvarInventario()"><i class="ti ti-clipboard-check"></i> Salvar Inventário</button>';
+  } else {
+    html += '<div style="text-align:center;padding:24px;color:#8b92a0">'
+      +'<i class="ti ti-map-pin-off" style="font-size:36px;display:block;margin-bottom:12px;opacity:.4"></i>'
+      +'<div style="font-size:14px;margin-bottom:8px">Sem endereços cadastrados</div>'
+      +'<div style="font-size:12px;opacity:.6">Use a opção ENDEREÇO para cadastrar primeiro</div>'
+      +'</div>';
+  }
+  html += '</div>';
 
   var ffDisplay = window._scItems.length > 0 ? 'block' : 'none';
   html += '<div class="fs" id="sc-ff" style="display:'+ffDisplay+'"><h3>INFORMAÇÕES DO PROJETO</h3>';
@@ -4642,12 +5373,86 @@ window.sMov = function(el,tipo){
   el.classList.add('sel');
   window._scMov = tipo;
   window._scSessao.mov = tipo;
-  document.getElementById('sc-form').style.display = 'block';
+  // Mostrar formulário correto
+  var isEnd = tipo==='estoque'||tipo==='inventario';
+  var sc = document.getElementById('sc-form');
+  var scEnd = document.getElementById('sc-end-form');
+  var scInv = document.getElementById('sc-inv-form');
+  if(sc) sc.style.display = (!isEnd) ? 'block' : 'none';
+  if(scEnd) scEnd.style.display = tipo==='estoque' ? 'block' : 'none';
+  if(scInv) scInv.style.display = tipo==='inventario' ? 'block' : 'none';
   var tipoFi = document.getElementById('sc-tipo-fi');
   if(tipoFi) tipoFi.style.display = tipo==='saida' ? 'block' : 'none';
   var tipoEntFi = document.getElementById('sc-tipo-ent-fi');
   if(tipoEntFi) tipoEntFi.style.display = tipo==='entrada' ? 'block' : 'none';
   if(tipo==='entrada' && !window._scTipoEnt) window._scTipoEnt = 'Compra';
+};
+
+window.sQEnd = function(d){
+  var el=document.getElementById('sc-end-qty');
+  if(el) el.value=Math.max(0,(parseInt(el.value)||0)+d);
+};
+
+window.scEditarEndereco = function(endId){
+  // Fechar scan e abrir modal de edição (no desktop) — no mobile só mostra alerta com os campos
+  var e=null; for(var i=0;i<db.enderecos.length;i++) if(db.enderecos[i].id===endId){e=db.enderecos[i];break;}
+  if(!e) return;
+  // Preencher campos inline do form de endereço
+  var rEl=document.getElementById('sc-end-rua');
+  var bEl=document.getElementById('sc-end-box');
+  var aEl=document.getElementById('sc-end-alt');
+  var qEl=document.getElementById('sc-end-qty');
+  if(rEl) rEl.value=e.rua||'';
+  if(bEl) bEl.value=e.box||'';
+  if(aEl) aEl.value=e.altura||'';
+  if(qEl) qEl.value=e.qty||0;
+  window._scEditandoEndId = e.id;
+  window.sToast('Campos preenchidos — ajuste e salve');
+};
+
+window.scSalvarEndereco = function(){
+  var rua=(document.getElementById('sc-end-rua').value||'').trim().toUpperCase();
+  var box=(document.getElementById('sc-end-box').value||'').trim();
+  var alt=(document.getElementById('sc-end-alt').value||'').trim();
+  var qty=parseInt(document.getElementById('sc-end-qty').value)||0;
+  if(!rua||!box||!alt){ window.sToast('Preencha Rua, Box e Altura!'); return; }
+  var prodId = window._scProd.id;
+  if(window._scEditandoEndId){
+    fsUpdate('enderecos', window._scEditandoEndId, {rua:rua, box:box, altura:alt, qty:qty});
+    window._scEditandoEndId = null;
+  } else {
+    var existe = db.enderecos.find(function(e){return e.produtoId===prodId&&e.rua===rua&&e.box===box&&e.altura===alt;});
+    if(existe){ fsUpdate('enderecos', existe.id, {qty:qty}); }
+    else { fsSave('enderecos', {id:genId(), produtoId:prodId, rua:rua, box:box, altura:alt, qty:qty}); }
+  }
+  setTimeout(function(){
+    sincronizarQtyProduto(prodId);
+    window.sToast('Endereço salvo! ✓');
+    // Re-renderizar a página de scan para refletir os novos endereços
+    renderScanPage(window._scProd);
+  }, 600);
+};
+
+window.scSalvarInventario = function(){
+  var prodId = window._scProd.id;
+  var ends = getEndsProduto(prodId);
+  if(!ends.length){ window.sToast('Sem endereços para inventariar'); return; }
+  var alteracoes = 0;
+  ends.forEach(function(e){
+    var el = document.getElementById('inv-'+e.id);
+    if(!el) return;
+    var novaQty = parseInt(el.value)||0;
+    if(novaQty !== e.qty){
+      fsUpdate('enderecos', e.id, {qty:novaQty});
+      alteracoes++;
+    }
+  });
+  setTimeout(function(){
+    sincronizarQtyProduto(prodId);
+    logAuditoria('editar','inventario','Inventário: '+window._scProd.nome+' — '+alteracoes+' endereço(s) ajustado(s)');
+    window.sToast('Inventário salvo! '+alteracoes+' ajuste(s) ✓');
+    renderScanPage(window._scProd);
+  }, 600);
 };
 
 window.sQ = function(d){
@@ -4656,10 +5461,18 @@ window.sQ = function(d){
 };
 
 window.addI = function(){
-  if(!window._scMov){ window.sToast('Selecione Entrada ou Saída!'); return; }
+  if(!window._scMov||window._scMov==='estoque'||window._scMov==='inventario'){ window.sToast('Selecione Entrada ou Saída!'); return; }
   var qty = parseInt(document.getElementById('sc-q').value)||1;
   if(qty <= 0){ window.sToast('Informe uma quantidade válida!'); return; }
-  window._scItems.push({prodId:window._scProd.id, nome:window._scProd.nome, un:window._scProd.unidade, qty:qty});
+
+  // Capturar endereço selecionado (apenas na saída)
+  var endId = null;
+  if(window._scMov === 'saida'){
+    var radios = document.querySelectorAll('input[name="sc-end"]:checked');
+    if(radios.length > 0) endId = radios[0].value;
+  }
+
+  window._scItems.push({prodId:window._scProd.id, nome:window._scProd.nome, un:window._scProd.unidade, qty:qty, endId:endId});
   window._scSessao.items = window._scItems;
 
   // Mostrar lista e botões
@@ -4765,6 +5578,13 @@ window.finScan = function(){
         var novaQty = window._scMov === 'entrada' ? curQty + item.qty : curQty - item.qty;
         transaction.update(refs[idx], {qty: novaQty});
 
+        // Se a saída tem endereço específico selecionado, desconta daquele endereço também
+        if(window._scMov === 'saida' && item.endId){
+          var endRef = dbf.collection('enderecos').doc(item.endId);
+          // Nota: não podemos fazer get() dentro de uma transaction que já está em execução
+          // então o desconto do endereço é feito fora, no .then()
+        }
+
         if(window._scMov === 'entrada'){
           var entId = 'e_'+Date.now()+'_'+idx+'_'+Math.random().toString(36).substr(2,5);
           transaction.set(dbf.collection('entradas').doc(entId),{produto:item.prodId,qty:item.qty,data:dt,forn:window._scTipoEnt==='Devolução'?'':'QR Scan',resp:resp,tipoMov:window._scTipoEnt||'Compra',projetoTxt:window._scTipoEnt==='Devolução'?proj:'',obs:obs||''});
@@ -4778,6 +5598,18 @@ window.finScan = function(){
     // Registrar projeto automaticamente
     if(window._scMov === 'saida' || (window._scMov === 'entrada' && window._scTipoEnt === 'Devolução')){
       registrarProjetoAutomatico(proj, eq, resp, itemsSnapshot, dt);
+    }
+    // Descontar dos endereços específicos (fora da transaction, por limitação do Firestore)
+    if(window._scMov === 'saida'){
+      itemsSnapshot.forEach(function(item){
+        if(item.endId){
+          var end = db.enderecos.find(function(e){return e.id===item.endId;});
+          if(end){
+            var novaQtyEnd = Math.max(0,(end.qty||0)-item.qty);
+            fsUpdate('enderecos', item.endId, {qty: novaQtyEnd});
+          }
+        }
+      });
     }
     var total = itemsSnapshot.reduce(function(a,b){return a+b.qty;},0);
     var resumo = itemsSnapshot.map(function(x){
