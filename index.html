@@ -5132,8 +5132,7 @@ function renderScanPage(produto){
   var movSel = window._scSessao.mov;
   html += '<div class="tb ent'+(movSel==='entrada'?' sel':'')+'" onclick="sMov(this,\'entrada\')">↑ ENTRADA</div>';
   html += '<div class="tb sai'+(movSel==='saida'?' sel':'')+'" onclick="sMov(this,\'saida\')">↓ SAÍDA</div>';
-  html += '<div class="tb'+(movSel==='estoque'?' sel':'')+'" style="background:'+(movSel==='estoque'?'rgba(45,212,191,.2)':'rgba(255,255,255,.04)')+';border-color:'+(movSel==='estoque'?'#2dd4bf':'rgba(255,255,255,.12)')+';color:'+(movSel==='estoque'?'#2dd4bf':'#8b92a0')+'" onclick="sMov(this,\'estoque\')"><i class="ti ti-map-pin"></i> ENDEREÇO</div>';
-  html += '<div class="tb'+(movSel==='inventario'?' sel':'')+'" style="background:'+(movSel==='inventario'?'rgba(167,139,250,.2)':'rgba(255,255,255,.04)')+';border-color:'+(movSel==='inventario'?'#a78bfa':'rgba(255,255,255,.12)')+';color:'+(movSel==='inventario'?'#a78bfa':'#8b92a0')+'" onclick="sMov(this,\'inventario\')"><i class="ti ti-clipboard-list"></i> INVENTÁRIO</div>';
+  html += '<div class="tb'+(movSel==='estoque'?' sel':'')+'" style="background:'+(movSel==='estoque'?'rgba(45,212,191,.2)':'rgba(255,255,255,.04)')+';border-color:'+(movSel==='estoque'?'#2dd4bf':'rgba(255,255,255,.12)')+';color:'+(movSel==='estoque'?'#2dd4bf':'#8b92a0')+'" onclick="sMov(this,\'estoque\')"><i class="ti ti-box"></i> ESTOQUE</div>';
   html += '</div></div>';
 
   // Formulário padrão (Entrada/Saída) — só aparece quando não é Estoque nem Inventário
@@ -5159,61 +5158,49 @@ function renderScanPage(produto){
   html += '<button class="abtn" style="background:#1f2228;border:1px solid rgba(255,255,255,.12);color:#f0f2f5;width:100%;margin-top:4px" onclick="addI()">+ Adicionar à Lista</button>';
   html += '</div>';
 
-  // Formulário de ENDEREÇO (modo Estoque)
+  // Formulário ESTOQUE — tudo numa tela só
   var endsExist = getEndsProduto(window._scProd.id);
   var endDisplay = movSel==='estoque' ? 'block' : 'none';
+  var totalEnd = getTotalEstoquePorEnderecos(window._scProd.id);
   html += '<div class="fs" id="sc-end-form" style="display:'+endDisplay+'">';
-  html += '<h3>ENDEREÇOS DESTE MATERIAL</h3>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">';
+  html += '<h3 style="margin:0">ESTOQUE — '+window._scProd.nome+'</h3>';
+  if(endsExist.length>0) html += '<div style="background:rgba(45,212,191,.12);color:#2dd4bf;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700">'+totalEnd+' '+window._scProd.unidade+' total</div>';
+  html += '</div>';
+
+  // Lista de endereços existentes — cada um com qty editável + excluir
   if(endsExist.length>0){
-    html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">';
+    html += '<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">';
     endsExist.forEach(function(e){
-      html += '<div style="background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.2);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px">'
-        +'<i class="ti ti-map-pin" style="color:#2dd4bf;font-size:18px"></i>'
-        +'<div style="flex:1"><div style="font-weight:600;color:#fff">'+fmtEnd(e)+'</div><div style="font-size:12px;color:#8b92a0">'+e.qty+' '+window._scProd.unidade+'</div></div>'
-        +'<button onclick="scEditarEndereco(\''+e.id+'\')" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#8b92a0;border-radius:8px;padding:6px 10px;cursor:pointer;font-size:12px"><i class="ti ti-edit"></i> Editar</button>'
+      html += '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px">'
+        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
+        +'<i class="ti ti-map-pin" style="color:#2dd4bf;font-size:16px"></i>'
+        +'<span style="font-weight:600;color:#fff;flex:1">Rua '+e.rua+' · Box '+e.box+' · Altura '+e.altura+'</span>'
+        +'<button onclick="scExcluirEndereco(\''+e.id+'\',\''+e.produtoId+'\')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center"><i class="ti ti-trash"></i></button>'
+        +'</div>'
+        +'<div style="display:flex;align-items:center;gap:8px">'
+        +'<span style="font-size:11px;color:#8b92a0;white-space:nowrap">Qtd:</span>'
+        +'<div class="qc" style="flex:1"><button onclick="var i=document.getElementById(\'eq-'+e.id+'\');i.value=Math.max(0,(parseInt(i.value)||0)-1)">−</button>'
+        +'<input type="number" id="eq-'+e.id+'" value="'+e.qty+'" min="0" inputmode="numeric">'
+        +'<button onclick="var i=document.getElementById(\'eq-'+e.id+'\');i.value=(parseInt(i.value)||0)+1">+</button></div>'
+        +'<button onclick="scAtualizarQtyEnd(\''+e.id+'\',\''+e.produtoId+'\')" style="background:#2dd4bf;color:#000;border:none;border-radius:8px;padding:8px 14px;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap"><i class="ti ti-check"></i> OK</button>'
+        +'</div>'
         +'</div>';
     });
     html += '</div>';
-    html += '<div style="font-size:12px;color:#8b92a0;margin-bottom:14px;padding:10px;background:rgba(255,255,255,.03);border-radius:8px">Total em estoque: <strong style="color:#2dd4bf">'+getTotalEstoquePorEnderecos(window._scProd.id)+'</strong> '+window._scProd.unidade+'</div>';
   }
-  html += '<h3 style="margin-bottom:10px">NOVO ENDEREÇO</h3>';
+
+  // Formulário para adicionar novo endereço
+  html += '<div style="background:rgba(45,212,191,.05);border:1px dashed rgba(45,212,191,.3);border-radius:10px;padding:14px">';
+  html += '<div style="font-size:11px;font-weight:600;color:#2dd4bf;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px"><i class="ti ti-plus"></i> Novo endereço</div>';
   html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
     +'<div class="fi" style="margin:0"><label style="font-size:10px">RUA</label><input type="text" id="sc-end-rua" placeholder="A" style="text-align:center;text-transform:uppercase"></div>'
     +'<div class="fi" style="margin:0"><label style="font-size:10px">BOX</label><input type="text" id="sc-end-box" placeholder="01" style="text-align:center"></div>'
     +'<div class="fi" style="margin:0"><label style="font-size:10px">ALTURA</label><input type="text" id="sc-end-alt" placeholder="1" style="text-align:center"></div>'
     +'</div>';
-  html += '<div class="fi"><label>QUANTIDADE NESTE ENDEREÇO</label><div class="qc"><button onclick="sQEnd(-1)">−</button><input type="number" id="sc-end-qty" value="0" min="0" inputmode="numeric"><button onclick="sQEnd(1)">+</button></div></div>';
-  html += '<button class="abtn" style="background:#2dd4bf;color:#000;border:none;font-weight:700;margin-top:8px" onclick="scSalvarEndereco()"><i class="ti ti-map-pin-plus"></i> Salvar Endereço</button>';
+  html += '<div class="fi" style="margin:0 0 10px"><label style="font-size:10px">QUANTIDADE</label><div class="qc"><button onclick="sQEnd(-1)">−</button><input type="number" id="sc-end-qty" value="0" min="0" inputmode="numeric"><button onclick="sQEnd(1)">+</button></div></div>';
+  html += '<button class="abtn" style="background:#2dd4bf;color:#000;border:none;font-weight:700" onclick="scSalvarEndereco()"><i class="ti ti-map-pin-plus"></i> Adicionar Endereço</button>';
   html += '</div>';
-
-  // Formulário de INVENTÁRIO
-  var invDisplay = movSel==='inventario' ? 'block' : 'none';
-  html += '<div class="fs" id="sc-inv-form" style="display:'+invDisplay+'">';
-  html += '<h3>INVENTÁRIO — CONTAGEM FÍSICA</h3>';
-  if(endsExist.length>0){
-    html += '<div style="font-size:12px;color:#8b92a0;margin-bottom:14px">Ajuste a quantidade real de cada endereço:</div>';
-    html += '<div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">';
-    endsExist.forEach(function(e){
-      html += '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px">'
-        +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-        +'<i class="ti ti-map-pin" style="color:#a78bfa"></i>'
-        +'<span style="font-weight:600;color:#fff">'+fmtEnd(e)+'</span>'
-        +'<span style="font-size:11px;color:#8b92a0">(antes: '+e.qty+' un)</span>'
-        +'</div>'
-        +'<div class="qc"><button onclick="var i=document.getElementById(\'inv-'+e.id+'\');i.value=Math.max(0,parseInt(i.value||0)-1)">−</button>'
-        +'<input type="number" id="inv-'+e.id+'" value="'+e.qty+'" min="0" inputmode="numeric" style="background:rgba(167,139,250,.1);border-color:rgba(167,139,250,.3)">'
-        +'<button onclick="var i=document.getElementById(\'inv-'+e.id+'\');i.value=parseInt(i.value||0)+1">+</button></div>'
-        +'</div>';
-    });
-    html += '</div>';
-    html += '<button class="abtn" style="background:#a78bfa;color:#000;border:none;font-weight:700" onclick="scSalvarInventario()"><i class="ti ti-clipboard-check"></i> Salvar Inventário</button>';
-  } else {
-    html += '<div style="text-align:center;padding:24px;color:#8b92a0">'
-      +'<i class="ti ti-map-pin-off" style="font-size:36px;display:block;margin-bottom:12px;opacity:.4"></i>'
-      +'<div style="font-size:14px;margin-bottom:8px">Sem endereços cadastrados</div>'
-      +'<div style="font-size:12px;opacity:.6">Use a opção ENDEREÇO para cadastrar primeiro</div>'
-      +'</div>';
-  }
   html += '</div>';
 
   var ffDisplay = window._scItems.length > 0 ? 'block' : 'none';
@@ -5374,13 +5361,13 @@ window.sMov = function(el,tipo){
   window._scMov = tipo;
   window._scSessao.mov = tipo;
   // Mostrar formulário correto
-  var isEnd = tipo==='estoque'||tipo==='inventario';
+  var isEnd = tipo==='estoque';
   var sc = document.getElementById('sc-form');
   var scEnd = document.getElementById('sc-end-form');
   var scInv = document.getElementById('sc-inv-form');
   if(sc) sc.style.display = (!isEnd) ? 'block' : 'none';
   if(scEnd) scEnd.style.display = tipo==='estoque' ? 'block' : 'none';
-  if(scInv) scInv.style.display = tipo==='inventario' ? 'block' : 'none';
+  if(scInv) scInv.style.display = 'none';
   var tipoFi = document.getElementById('sc-tipo-fi');
   if(tipoFi) tipoFi.style.display = tipo==='saida' ? 'block' : 'none';
   var tipoEntFi = document.getElementById('sc-tipo-ent-fi');
@@ -5391,6 +5378,28 @@ window.sMov = function(el,tipo){
 window.sQEnd = function(d){
   var el=document.getElementById('sc-end-qty');
   if(el) el.value=Math.max(0,(parseInt(el.value)||0)+d);
+};
+
+window.scAtualizarQtyEnd = function(endId, prodId){
+  var el = document.getElementById('eq-'+endId);
+  if(!el) return;
+  var qty = Math.max(0, parseInt(el.value)||0);
+  fsUpdate('enderecos', endId, {qty: qty});
+  setTimeout(function(){
+    sincronizarQtyProduto(prodId);
+    window.sToast('Quantidade atualizada ✓');
+    renderScanPage(window._scProd);
+  }, 400);
+};
+
+window.scExcluirEndereco = function(endId, prodId){
+  if(!confirm('Remover este endereço?')) return;
+  fsDelete('enderecos', endId);
+  setTimeout(function(){
+    sincronizarQtyProduto(prodId);
+    window.sToast('Endereço removido');
+    renderScanPage(window._scProd);
+  }, 400);
 };
 
 window.scEditarEndereco = function(endId){
@@ -5433,27 +5442,6 @@ window.scSalvarEndereco = function(){
   }, 600);
 };
 
-window.scSalvarInventario = function(){
-  var prodId = window._scProd.id;
-  var ends = getEndsProduto(prodId);
-  if(!ends.length){ window.sToast('Sem endereços para inventariar'); return; }
-  var alteracoes = 0;
-  ends.forEach(function(e){
-    var el = document.getElementById('inv-'+e.id);
-    if(!el) return;
-    var novaQty = parseInt(el.value)||0;
-    if(novaQty !== e.qty){
-      fsUpdate('enderecos', e.id, {qty:novaQty});
-      alteracoes++;
-    }
-  });
-  setTimeout(function(){
-    sincronizarQtyProduto(prodId);
-    logAuditoria('editar','inventario','Inventário: '+window._scProd.nome+' — '+alteracoes+' endereço(s) ajustado(s)');
-    window.sToast('Inventário salvo! '+alteracoes+' ajuste(s) ✓');
-    renderScanPage(window._scProd);
-  }, 600);
-};
 
 window.sQ = function(d){
   var i = document.getElementById('sc-q');
@@ -5461,7 +5449,7 @@ window.sQ = function(d){
 };
 
 window.addI = function(){
-  if(!window._scMov||window._scMov==='estoque'||window._scMov==='inventario'){ window.sToast('Selecione Entrada ou Saída!'); return; }
+  if(!window._scMov||window._scMov==='estoque'){ window.sToast('Selecione Entrada ou Saída!'); return; }
   var qty = parseInt(document.getElementById('sc-q').value)||1;
   if(qty <= 0){ window.sToast('Informe uma quantidade válida!'); return; }
 
