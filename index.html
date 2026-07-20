@@ -2679,8 +2679,8 @@ function gerarEtiquetaHTML(nome, codigo, local, unidade, qrSrc, logoB64) {
     '  </div>',
     '  <div class="et-row2">',
     '    <div class="et-field"><span class="et-label">UND:</span> '+(unidade||'UN')+'</div>',
-    '    <div class="et-field"><span class="et-label">Centro:</span> ______</div>',
-    '    <div class="et-field"><span class="et-label">Depósito:</span> ______</div>',
+    '    <div class="et-field"><span class="et-label">Centro:</span> CG03</div>',
+    '    <div class="et-field"><span class="et-label">Depósito:</span> MB01</div>',
     '  </div>',
     '</div>'
   ].join('');
@@ -2745,7 +2745,7 @@ function gerarEtiquetaEquatorial(p, qrSrc){
     '  <div class="etq-foot">',
     '    <div class="etq-und">UND: '+unidade+'</div>',
     '    <div class="etq-end">Endereço: '+local+'</div>',
-    '    <div class="etq-dep">Centro:<br>Depósito:</div>',
+    '    <div class="etq-dep">Centro: CG03<br>Depósito: MB01</div>',
     '  </div>',
     '</div>'
   ].join('');
@@ -2985,8 +2985,8 @@ window.imprimirEtiquetasSelecionadas = async function(){
     doc.text('UND: '+(p.unidade||'UN'), x+4, yDexBottom+FOOT_H/2+1.5);
     doc.text('Endereço: '+(p.local||''), x+undW+4, yDexBottom+FOOT_H/2+1.5);
     doc.setFontSize(9);
-    doc.text('Centro:', x+undW+endW+4, yDexBottom+FOOT_H*0.4);
-    doc.text('Depósito:', x+undW+endW+4, yDexBottom+FOOT_H*0.8);
+    doc.text('Centro: CG03', x+undW+endW+4, yDexBottom+FOOT_H*0.4);
+    doc.text('Depósito: MB01', x+undW+endW+4, yDexBottom+FOOT_H*0.8);
   }
 
   for(var i=0;i<selecionados.length;i++){
