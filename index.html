@@ -1795,6 +1795,7 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
     <div class="ni" role="button" tabindex="0" title="QR Codes" onclick="navigate('qrcodes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('qrcodes')"><i class="ti ti-qrcode" aria-hidden="true"></i> QR Codes</div>
     <div class="ns">Gestão</div>
     <div class="ni" role="button" tabindex="0" title="Projetos" onclick="navigate('projetos')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('projetos')"><i class="ti ti-folders" aria-hidden="true"></i> Projetos</div>
+    <div class="ni" role="button" tabindex="0" title="Inventário" onclick="navigate('inventario')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('inventario')"><i class="ti ti-clipboard-list" aria-hidden="true"></i> Inventário</div>
     <div class="ni" role="button" tabindex="0" title="Reservas SAP" onclick="navigate('reservas')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('reservas')"><i class="ti ti-database" aria-hidden="true"></i> Reservas SAP</div>
     <div class="ni" role="button" tabindex="0" title="Equipes" onclick="navigate('equipes')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('equipes')"><i class="ti ti-users" aria-hidden="true"></i> Equipes</div>
     <div class="ni" role="button" tabindex="0" title="Categorias" onclick="navigate('categorias')" onkeydown="if(event.key==='Enter'||event.key===' ')navigate('categorias')"><i class="ti ti-tags" aria-hidden="true"></i> Categorias</div>
@@ -1929,6 +1930,78 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
         </div>
       </div>
       <div id="projetos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+         INVENTÁRIO
+    ═══════════════════════════════════════════════════ -->
+    <div class="page" id="page-inventario">
+      <div class="ph">
+        <div><div class="pt">Inventário</div><div class="ps">Contagem física do estoque com múltiplas conferências e consolidação auditada</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn bg" onclick="navigate('inv-dashboard')"><i class="ti ti-chart-bar"></i> Dashboard</button>
+          <button class="btn bp" onclick="abrirNovoInventario()"><i class="ti ti-plus"></i> Novo Inventário</button>
+        </div>
+      </div>
+
+      <!-- Lista de inventários -->
+      <div id="inv-lista"></div>
+    </div>
+
+    <!-- PAINEL DE UM INVENTÁRIO ESPECÍFICO -->
+    <div class="page" id="page-inv-detalhe">
+      <div class="ph">
+        <div>
+          <button class="btn bg bsm" onclick="navigate('inventario')" style="margin-bottom:8px"><i class="ti ti-arrow-left"></i> Voltar</button>
+          <div class="pt" id="inv-det-title">Inventário</div>
+          <div class="ps" id="inv-det-sub"></div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bg" onclick="exportarInventario()"><i class="ti ti-file-spreadsheet"></i> Exportar XLSX</button>
+          <button class="btn bg" id="inv-btn-consolidar" onclick="consolidarInventario()" style="display:none"><i class="ti ti-check-all"></i> Consolidar</button>
+          <button class="btn bp" id="inv-btn-aplicar" onclick="aplicarConsolidadoAoEstoque()" style="display:none"><i class="ti ti-database-import"></i> Aplicar ao Estoque</button>
+        </div>
+      </div>
+
+      <!-- Abas do inventário -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center">
+        <div id="inv-abas" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+          <div style="position:relative"><i class="ti ti-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"></i><input type="text" id="inv-busca" placeholder="Buscar por código..." oninput="renderInvTabela()" style="padding:7px 12px 7px 32px;background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit"></div>
+          <select id="inv-filtro-status" onchange="renderInvTabela()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:7px 12px;font-size:13px;font-family:inherit">
+            <option value="">Todos</option>
+            <option value="fechado">Fechados ✅</option>
+            <option value="divergente">Divergentes ⚠️</option>
+            <option value="pendente">Pendentes 🔘</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Atribuição de usuários (só admin, só quando não consolidado) -->
+      <div id="inv-atribuicao-box" style="display:none;margin-bottom:16px"></div>
+
+      <!-- Tabela de contagens -->
+      <div class="card">
+        <div class="cb" style="padding:0">
+          <div class="tw" style="overflow-x:auto"><table id="inv-tabela"><thead><tr id="inv-thead"></tr></thead><tbody id="inv-tbody"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- Consolidação -->
+      <div id="inv-consolidacao-box" style="display:none;margin-top:16px"></div>
+    </div>
+
+    <!-- DASHBOARD DO INVENTÁRIO -->
+    <div class="page" id="page-inv-dashboard">
+      <div class="ph">
+        <div>
+          <button class="btn bg bsm" onclick="navigate('inventario')" style="margin-bottom:8px"><i class="ti ti-arrow-left"></i> Voltar</button>
+          <div class="pt">Dashboard — Inventário</div>
+          <div class="ps">Desempenho dos usuários nas contagens</div>
+        </div>
+        <div><select id="inv-dash-sel" onchange="renderInvDashboard()" style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:8px 12px;font-size:13px;font-family:inherit"><option value="">Selecione um inventário</option></select></div>
+      </div>
+      <div id="inv-dash-conteudo"></div>
     </div>
 
     <div class="page" id="page-reservas">
@@ -2108,9 +2181,11 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
 <div class="mobile-more-backdrop" id="mobile-more-backdrop" onclick="toggleMobileMore()"></div>
 <div class="mobile-more-panel" id="mobile-more-panel" role="menu" aria-label="Mais opções">
   <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('reservas')"><i class="ti ti-database" aria-hidden="true"></i> Reservas SAP</div>
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('inventario')"><i class="ti ti-clipboard-list" aria-hidden="true"></i> Inventário</div>
   <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('qrcodes')"><i class="ti ti-qrcode" aria-hidden="true"></i> QR Codes</div>
   <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('equipes')"><i class="ti ti-users" aria-hidden="true"></i> Equipes</div>
   <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('categorias')"><i class="ti ti-tags" aria-hidden="true"></i> Categorias</div>
+  <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('bi')"><i class="ti ti-chart-dots-3" aria-hidden="true"></i> BI Analítico</div>
   <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('relatorios')"><i class="ti ti-chart-bar" aria-hidden="true"></i> Relatórios</div>
   <div class="mmp-item" role="menuitem" tabindex="0" onclick="navigateFromMore('alertas')"><i class="ti ti-bell" aria-hidden="true"></i> Alertas</div>
   <div class="mmp-item" id="mmp-usuarios" role="menuitem" tabindex="0" onclick="navigateFromMore('usuarios')"><i class="ti ti-user-cog" aria-hidden="true"></i> Usuários</div>
@@ -2233,6 +2308,44 @@ nav::-webkit-scrollbar-track, .tw::-webkit-scrollbar-track, .modal::-webkit-scro
   <div class="mf">
     <button class="btn bg" onclick="closeModal('modal-projeto')">Cancelar</button>
     <button class="btn bp" onclick="salvarProjeto()"><i class="ti ti-check"></i> Salvar</button>
+  </div>
+</div>
+</div>
+
+<!-- Modal: Novo Inventário -->
+<div class="mo" id="modal-novo-inventario">
+<div class="modal" style="max-width:480px">
+  <div class="mh"><span class="mt">Novo Inventário</span><button class="xb" onclick="closeModal('modal-novo-inventario')">&times;</button></div>
+  <div class="mb">
+    <div class="fg"><label>Descrição *</label><input type="text" id="ni-desc" placeholder="Ex: Inventário Geral Julho/2026"></div>
+    <div class="fg"><label>Data</label><input type="date" id="ni-data"></div>
+    <div class="fg"><label>Observações</label><textarea id="ni-obs" placeholder="Opcional..."></textarea></div>
+  </div>
+  <div class="mf">
+    <button class="btn bg" onclick="closeModal('modal-novo-inventario')">Cancelar</button>
+    <button class="btn bp" onclick="criarInventario()"><i class="ti ti-plus"></i> Criar</button>
+  </div>
+</div>
+</div>
+
+<!-- Modal: Editar lançamento (só admin) -->
+<div class="mo" id="modal-editar-lancamento">
+<div class="modal" style="max-width:480px">
+  <div class="mh"><span class="mt">Corrigir Lançamento</span><button class="xb" onclick="closeModal('modal-editar-lancamento')">&times;</button></div>
+  <div class="mb">
+    <div id="mel-info" style="background:var(--bg3);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:var(--text2)"></div>
+    <input type="hidden" id="mel-id">
+    <div class="fg"><label>Quantidade corrigida *</label><input type="number" id="mel-qty" min="0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <div class="fg"><label>Rua</label><input type="text" id="mel-rua" style="text-transform:uppercase"></div>
+      <div class="fg"><label>Box</label><input type="text" id="mel-box"></div>
+      <div class="fg"><label>Altura</label><input type="text" id="mel-alt"></div>
+    </div>
+    <div class="fg"><label>Motivo da correção *</label><input type="text" id="mel-motivo" placeholder="Ex: Erro de digitação do colaborador João"></div>
+  </div>
+  <div class="mf">
+    <button class="btn bg" onclick="closeModal('modal-editar-lancamento')">Cancelar</button>
+    <button class="btn bp" onclick="salvarCorrecaoLancamento()"><i class="ti ti-check"></i> Salvar Correção</button>
   </div>
 </div>
 </div>
@@ -2437,11 +2550,11 @@ var firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 var dbf = firebase.firestore();
 
-var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[],reservas:[],auditoria:[],enderecos:[]};
+var db={produtos:[],entradas:[],saidas:[],projetos:[],equipes:[],categorias:[],usuarios:[],reservas:[],auditoria:[],enderecos:[],inventarios:[],inv_contagens:[]};
 var currentUser=null;
 var importData=[];
 var selectedTipo='';
-var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios','reservas','auditoria','enderecos'];
+var COLLECTIONS=['produtos','entradas','saidas','projetos','equipes','categorias','usuarios','reservas','auditoria','enderecos','inventarios','inv_contagens'];
 var unsubs=[];
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).substr(2,5);}
@@ -2500,7 +2613,7 @@ function setSyncStatus(ok){
 
 // Carrega tudo do Firestore e mantem em tempo real
 function initFirestoreSync(callback){
-  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false,reservas:false,auditoria:false,enderecos:false};
+  var loaded={produtos:false,entradas:false,saidas:false,projetos:false,equipes:false,categorias:false,usuarios:false,reservas:false,auditoria:false,enderecos:false,inventarios:false,inv_contagens:false};
   function checkAllLoaded(){
     if(Object.values(loaded).every(function(v){return v;})){
       callback();
@@ -2518,7 +2631,7 @@ function initFirestoreSync(callback){
       setSyncStatus(true);
       loaded[col]=true;
       checkAllLoaded();
-      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&loaded.reservas&&loaded.auditoria&&loaded.enderecos&&window._appStarted){
+      if(loaded.produtos&&loaded.entradas&&loaded.saidas&&loaded.projetos&&loaded.equipes&&loaded.categorias&&loaded.usuarios&&loaded.reservas&&loaded.auditoria&&loaded.enderecos&&loaded.inventarios&&loaded.inv_contagens&&window._appStarted){
         if(typeof renderPage==='function')renderPage(currentPage);
       }
     },function(err){
@@ -2635,7 +2748,7 @@ function gEq(id){for(var i=0;i<db.equipes.length;i++)if(db.equipes[i].id===id)re
 function gCat(id){for(var i=0;i<db.categorias.length;i++)if(db.categorias[i].id===id)return db.categorias[i];return null;}
 
 // Endereços: Rua-Box-Altura
-function fmtEnd(e){ return (e.rua||'?')+'-'+(e.box||'?')+'-'+(e.altura||'?'); }
+function fmtEnd(e){ return 'R'+(e.rua||'?')+'-B'+(e.box||'?')+'-A'+(e.altura||'?'); }
 function getEndsProduto(prodId){ return db.enderecos.filter(function(e){return e.produtoId===prodId&&e.qty>0;}); }
 function getTotalEstoquePorEnderecos(prodId){
   return db.enderecos.filter(function(e){return e.produtoId===prodId;}).reduce(function(a,b){return a+(Number(b.qty)||0);},0);
@@ -2684,7 +2797,9 @@ var pageCfg={
   categorias:{title:'Categorias',action:'Nova Categoria',actionFn:function(){openModal('modal-categoria');}},
   usuarios:{title:'Usuários',action:'Novo Usuário',actionFn:function(){openModal('modal-usuario');}},
   auditoria:{title:'Log de Auditoria',action:null},
-  relatorios:{title:'Relatórios',action:null},
+  inventario:{title:'Inventário',action:null},
+  'inv-detalhe':{title:'Inventário — Detalhe',action:null},
+  'inv-dashboard':{title:'Dashboard — Inventário',action:null},
   bi:{title:'BI Analítico',action:null},
   alertas:{title:'Alertas',action:null}
 };
@@ -2734,6 +2849,9 @@ function renderPage(page){
   else if(page==='categorias')renderCategorias();
   else if(page==='usuarios')renderUsuarios();
   else if(page==='auditoria')renderAuditoria();
+  else if(page==='inventario')renderInventarioLista();
+  else if(page==='inv-detalhe')renderInvDetalhe();
+  else if(page==='inv-dashboard')renderInvDashboard();
   else if(page==='relatorios')renderRelatorios();
   else if(page==='bi')renderBI();
   else if(page==='alertas')renderAlertas();
@@ -3712,7 +3830,7 @@ function atualizarPreviewEnd(){
   var txt=document.getElementById('mend-preview-txt');
   if(r&&b&&a){
     prev.style.display='block';
-    txt.textContent='Rua '+r+' — Box '+b+' — Altura '+a;
+    txt.textContent='R'+r+'-B'+b+'-A'+a;
   } else {
     prev.style.display='none';
   }
@@ -4557,6 +4675,571 @@ function renderBI(){
 
 function irProjetosBI(){ navigate('projetos'); }
 
+function exportarBI(){
+  var mesEl=document.getElementById('bi-mes'), anoEl=document.getElementById('bi-ano');
+  if(!mesEl||!anoEl){toast('Abra o BI antes de exportar','error');return;}
+  var mes=parseInt(mesEl.value), ano=parseInt(anoEl.value);
+  var mesStr=String(ano)+'-'+String(mes).padStart(2,'0');
+  var meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var saidas=db.saidas.filter(function(s){return (s.data||'').startsWith(mesStr);});
+  if(typeof XLSX==='undefined'){toast('Aguarde o carregamento da biblioteca...','error');return;}
+  var wb=XLSX.utils.book_new();
+  var rows=[['Data','Código','Material','Qtd.','Unidade','Projeto','Equipe','Tipo','Responsável']];
+  saidas.forEach(function(s){
+    var p=gP(s.produto); var eq=gEq(s.equipe);
+    rows.push([fmtDate(s.data),p?p.codigo:'',p?p.nome:'?',s.qty,p?p.unidade:'un',s.projetoTxt||'',eq?eq.nome:'',s.tipoServ||'',s.resp||'']);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), meses[mes-1]+' '+ano);
+  XLSX.writeFile(wb,'kflow-bi-'+mesStr+'.xlsx');
+  toast('Exportado!','success');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MÓDULO DE INVENTÁRIO
+// Lógica: 2 contagens iguais (qualquer sequência) = item fechado
+// Correção: só admin, lançamento original fica registrado (imutável)
+// Consolidação: manual; aplicar ao estoque: manual + confirmação dupla
+// ═══════════════════════════════════════════════════════════════════
+
+var _invAtivo = null; // ID do inventário aberto no detalhe
+var _invAbaAtiva = 'comparacao'; // aba ativa: 'C1','C2'... ou 'comparacao' ou 'consolidacao'
+
+// ── Helpers ─────────────────────────────────────────────────────────
+function gInv(id){ return db.inventarios.find(function(x){return x.id===id;})||null; }
+
+function getContagensInv(invId){
+  return db.inv_contagens.filter(function(c){return c.invId===invId&&!c.corrigido;});
+}
+
+function getNumContagens(invId){
+  var cs = getContagensInv(invId);
+  if(!cs.length) return 0;
+  return Math.max.apply(null, cs.map(function(c){return c.numContagem;}));
+}
+
+// Calcula o status de fechamento de cada produto/endereço num inventário
+// Retorna { "prodId|rua|box|alt": { status, valorFechado, contagens: [{n, qty, user, ts}] } }
+function calcStatusItens(invId){
+  var contagens = getContagensInv(invId);
+  // Agrupar por produto+endereço
+  var grupos = {};
+  contagens.forEach(function(c){
+    var k = c.prodId+'|'+(c.rua||'')+'-'+(c.box||'')+'-'+(c.alt||'');
+    if(!grupos[k]) grupos[k] = {prodId:c.prodId, rua:c.rua, box:c.box, alt:c.alt, contagens:[]};
+    grupos[k].contagens.push({n:c.numContagem, qty:c.qty, user:c.usuario, ts:c.ts, id:c.id});
+  });
+  // Calcular status
+  Object.keys(grupos).forEach(function(k){
+    var g = grupos[k];
+    g.contagens.sort(function(a,b){return a.n-b.n;});
+    var qtds = g.contagens.map(function(c){return c.qty;});
+    // Verificar se algum par tem o mesmo valor
+    var fechado = false, valorFechado = null;
+    for(var i=0;i<qtds.length&&!fechado;i++){
+      for(var j=i+1;j<qtds.length&&!fechado;j++){
+        if(qtds[i]===qtds[j]){ fechado=true; valorFechado=qtds[i]; }
+      }
+    }
+    g.status = fechado ? 'fechado' : (qtds.length>=1 ? 'divergente' : 'pendente');
+    g.valorFechado = valorFechado;
+  });
+  return grupos;
+}
+
+// ── Renderização da lista de inventários ────────────────────────────
+function renderInventarioLista(){
+  var el = document.getElementById('inv-lista');
+  if(!el) return;
+  if(!db.inventarios.length){
+    el.innerHTML='<div class="es"><i class="ti ti-clipboard-list"></i><div class="es-t">Nenhum inventário criado</div><div class="es-s">Clique em "Novo Inventário" para começar a contagem.</div></div>';
+    return;
+  }
+  var invs = db.inventarios.slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');});
+  el.innerHTML = invs.map(function(inv){
+    var nC = getNumContagens(inv.id);
+    var itens = getContagensInv(inv.id).length;
+    var statusCls = inv.status==='consolidado'?'bg2':inv.status==='aplicado'?'bg2':'ba';
+    var statusTxt = inv.status==='consolidado'?'Consolidado':inv.status==='aplicado'?'Aplicado ao Estoque':'Em andamento';
+    var statusColor = inv.status==='consolidado'?'var(--teal)':inv.status==='aplicado'?'var(--green)':'var(--amber)';
+    return '<div class="card" style="padding:20px;margin-bottom:12px;cursor:pointer" onclick="abrirInventario(\''+inv.id+'\')">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">'
+      +'<div style="flex:1">'
+      +'<div style="font-weight:700;font-size:16px;margin-bottom:4px">'+inv.descricao+'</div>'
+      +'<div style="font-size:12px;color:var(--text3)">'+fmtDate(inv.data)+(inv.criadorNome?' · Criado por '+inv.criadorNome:'')+'</div>'
+      +(inv.obs?'<div style="font-size:12px;color:var(--text2);margin-top:4px">'+inv.obs+'</div>':'')
+      +'</div>'
+      +'<span class="badge" style="background:'+statusColor+'22;color:'+statusColor+';border:1px solid '+statusColor+'55;flex-shrink:0">'+statusTxt+'</span>'
+      +'</div>'
+      +'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px">'
+      +'<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--accent)">'+nC+'</div><div style="font-size:11px;color:var(--text3)">Contagens</div></div>'
+      +'<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--teal)">'+itens+'</div><div style="font-size:11px;color:var(--text3)">Lançamentos</div></div>'
+      +'<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--purple)">'+(inv.usuariosAtivos?inv.usuariosAtivos.length:0)+'</div><div style="font-size:11px;color:var(--text3)">Contadores</div></div>'
+      +'</div>'
+      +(canEdit()?'<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">'
+        +'<button class="btn bg bsm" onclick="event.stopPropagation();abrirInventario(\''+inv.id+'\')"><i class="ti ti-eye"></i> Abrir</button>'
+        +(inv.status!=='aplicado'?'<button class="btn bg bsm" style="color:var(--red)" onclick="event.stopPropagation();deletarInventario(\''+inv.id+'\')"><i class="ti ti-trash"></i></button>':'')
+        +'</div>':'')
+      +'</div>';
+  }).join('');
+}
+
+// ── Criar inventário ────────────────────────────────────────────────
+function abrirNovoInventario(){
+  if(!canEdit()){toast('Sem permissão','error');return;}
+  openModal('modal-novo-inventario');
+  document.getElementById('ni-data').value = today();
+  document.getElementById('ni-desc').value = '';
+  document.getElementById('ni-obs').value = '';
+}
+function criarInventario(){
+  var desc = document.getElementById('ni-desc').value.trim();
+  if(!desc){toast('Informe uma descrição!','error');return;}
+  var inv = {
+    id: genId(),
+    descricao: desc,
+    data: document.getElementById('ni-data').value || today(),
+    obs: document.getElementById('ni-obs').value,
+    status: 'andamento',
+    criadorId: currentUser.id,
+    criadorNome: currentUser.nome,
+    criadorTs: new Date().toISOString(),
+    usuariosAtivos: [], // [{userId, nome, numContagem, bloqueado}]
+    consolidadoEm: null,
+    consolidadoPor: null,
+    aplicadoEm: null,
+    aplicadoPor: null
+  };
+  fsSave('inventarios', inv);
+  logAuditoria('criar','inventario','Inventário "'+desc+'" criado');
+  closeModal('modal-novo-inventario');
+  toast('Inventário criado!','success');
+  setTimeout(function(){ abrirInventario(inv.id); }, 400);
+}
+
+async function deletarInventario(id){
+  var inv = gInv(id); if(!inv) return;
+  var ok = await confirmDialog('O inventário "'+inv.descricao+'" e todos os seus lançamentos serão removidos permanentemente.',{title:'Deletar inventário?',confirmText:'Deletar'});
+  if(!ok) return;
+  fsDelete('inventarios', id);
+  db.inv_contagens.filter(function(c){return c.invId===id;}).forEach(function(c){fsDelete('inv_contagens',c.id);});
+  toast('Inventário removido','info');
+}
+
+// ── Abrir inventário ────────────────────────────────────────────────
+function abrirInventario(id){
+  _invAtivo = id;
+  _invAbaAtiva = 'comparacao';
+  navigate('inv-detalhe');
+}
+
+function renderInvDetalhe(){
+  var inv = gInv(_invAtivo); if(!inv) return;
+  document.getElementById('inv-det-title').textContent = inv.descricao;
+  document.getElementById('inv-det-sub').textContent = fmtDate(inv.data)+' · Status: '+(inv.status==='andamento'?'Em andamento':inv.status==='consolidado'?'Consolidado':'Aplicado ao Estoque');
+
+  // Botões
+  var nC = getNumContagens(_invAtivo);
+  var grupos = calcStatusItens(_invAtivo);
+  var totalItens = Object.keys(grupos).length;
+  var fechados = Object.values(grupos).filter(function(g){return g.status==='fechado';}).length;
+  var btnCons = document.getElementById('inv-btn-consolidar');
+  var btnApl = document.getElementById('inv-btn-aplicar');
+  if(btnCons) btnCons.style.display = (inv.status==='andamento'&&totalItens>0&&fechados===totalItens)?'inline-flex':'none';
+  if(btnApl) btnApl.style.display = inv.status==='consolidado'?'inline-flex':'none';
+
+  // Atribuição de usuários (só admin, só em andamento)
+  renderInvAtribuicao(inv);
+
+  // Abas
+  renderInvAbas(inv, nC);
+
+  // Tabela
+  renderInvTabela();
+}
+
+// ── Atribuição de usuários ──────────────────────────────────────────
+function renderInvAtribuicao(inv){
+  var box = document.getElementById('inv-atribuicao-box');
+  if(!box||!canEdit()||inv.status!=='andamento') { if(box) box.style.display='none'; return; }
+  box.style.display='block';
+  var uAtivos = inv.usuariosAtivos||[];
+  box.innerHTML = '<div class="card" style="padding:16px;margin-bottom:4px">'
+    +'<div style="font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px"><i class="ti ti-users" style="color:var(--teal)"></i> Contadores ativos</div>'
+    +'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">'
+    +db.usuarios.filter(function(u){return u.perfil!=='admin';}).map(function(u){
+      var ua = uAtivos.find(function(x){return x.userId===u.id;});
+      var ativo = !!ua && !ua.bloqueado;
+      return '<div style="background:var(--bg3);border:1px solid '+(ativo?'var(--teal)':'var(--border)')+';border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px">'
+        +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+u.nome+'</div>'
+        +(ua?'<div style="font-size:11px;color:var(--teal)">C'+ua.numContagem+(ua.bloqueado?' · <span style="color:var(--red)">Bloqueado</span>':'')+'</div>':'<div style="font-size:11px;color:var(--text3)">Não atribuído</div>')
+        +'</div>'
+        +(ua
+          ?'<button onclick="toggleBloqueioContador(\''+inv.id+'\',\''+u.id+'\')" class="btn bg bsm" style="color:'+(ua.bloqueado?'var(--teal)':'var(--red)')+'"><i class="ti ti-'+(ua.bloqueado?'lock-open':'lock')+'"></i></button>'
+          +'<button onclick="removerContador(\''+inv.id+'\',\''+u.id+'\')" class="btn bg bsm" style="color:var(--red)"><i class="ti ti-x"></i></button>'
+          :'')
+        +'</div>';
+    }).join('')
+    +'</div>'
+    +'<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">'
+    +'<div class="fg" style="margin:0;flex:1;min-width:140px"><label>Usuário</label><select id="inv-novo-user" style="width:100%"><option value="">Selecione...</option>'
+    +db.usuarios.filter(function(u){return u.perfil!=='admin'&&!(uAtivos.find(function(x){return x.userId===u.id&&!x.bloqueado;}));}).map(function(u){return'<option value="'+u.id+'">'+u.nome+'</option>';}).join('')
+    +'</select></div>'
+    +'<div class="fg" style="margin:0;width:80px"><label>Contagem</label><select id="inv-novo-nc"><option value="1">C1</option><option value="2">C2</option><option value="3">C3</option><option value="4">C4</option><option value="5">C5</option></select></div>'
+    +'<button class="btn bp" onclick="atribuirContador(\''+inv.id+'\')"><i class="ti ti-plus"></i> Atribuir</button>'
+    +'</div>'
+    +'</div>';
+}
+
+function atribuirContador(invId){
+  var userId = document.getElementById('inv-novo-user').value;
+  var nc = parseInt(document.getElementById('inv-novo-nc').value);
+  if(!userId){toast('Selecione um usuário','error');return;}
+  var u = db.usuarios.find(function(x){return x.id===userId;});
+  if(!u) return;
+  var inv = gInv(invId); if(!inv) return;
+  var uAtivos = (inv.usuariosAtivos||[]).filter(function(x){return x.userId!==userId;});
+  uAtivos.push({userId:userId, nome:u.nome, numContagem:nc, bloqueado:false});
+  fsUpdate('inventarios', invId, {usuariosAtivos:uAtivos});
+  toast(u.nome+' atribuído à C'+nc,'success');
+}
+
+function toggleBloqueioContador(invId, userId){
+  var inv = gInv(invId); if(!inv) return;
+  var uAtivos = (inv.usuariosAtivos||[]).map(function(x){
+    if(x.userId===userId) return Object.assign({},x,{bloqueado:!x.bloqueado});
+    return x;
+  });
+  fsUpdate('inventarios', invId, {usuariosAtivos:uAtivos});
+}
+
+function removerContador(invId, userId){
+  var inv = gInv(invId); if(!inv) return;
+  var uAtivos = (inv.usuariosAtivos||[]).filter(function(x){return x.userId!==userId;});
+  fsUpdate('inventarios', invId, {usuariosAtivos:uAtivos});
+}
+
+// ── Abas ────────────────────────────────────────────────────────────
+function renderInvAbas(inv, nC){
+  var el = document.getElementById('inv-abas'); if(!el) return;
+  var abas = [];
+  for(var i=1;i<=Math.max(nC,1);i++) abas.push({key:'C'+i, label:'Contagem '+i});
+  abas.push({key:'comparacao', label:'Comparação'});
+  if(inv.status==='consolidado'||inv.status==='aplicado') abas.push({key:'consolidacao', label:'Consolidação'});
+  el.innerHTML = abas.map(function(a){
+    return '<div class="ptab'+(a.key===_invAbaAtiva?' sel':'')+'" onclick="mudarAbaInv(\''+a.key+'\')">'+a.label+'</div>';
+  }).join('');
+}
+
+function mudarAbaInv(key){
+  _invAbaAtiva = key;
+  var inv = gInv(_invAtivo); if(!inv) return;
+  var nC = getNumContagens(_invAtivo);
+  renderInvAbas(inv, nC);
+  renderInvTabela();
+}
+
+// ── Tabela principal ────────────────────────────────────────────────
+function renderInvTabela(){
+  var inv = gInv(_invAtivo); if(!inv) return;
+  var busca = ((document.getElementById('inv-busca')||{}).value||'').toLowerCase().trim();
+  var filtroSt = ((document.getElementById('inv-filtro-status')||{}).value||'');
+  var thead = document.getElementById('inv-thead');
+  var tbody = document.getElementById('inv-tbody');
+  if(!thead||!tbody) return;
+
+  if(_invAbaAtiva.startsWith('C')){
+    // Aba de uma contagem específica
+    var nc = parseInt(_invAbaAtiva.replace('C',''));
+    var linhas = db.inv_contagens.filter(function(c){
+      return c.invId===_invAtivo && c.numContagem===nc;
+    }).filter(function(c){
+      var p=gP(c.prodId);
+      return !busca||((p&&p.codigo||'').toLowerCase().indexOf(busca)>=0)||((p&&p.nome||'').toLowerCase().indexOf(busca)>=0);
+    }).sort(function(a,b){return (b.ts||'').localeCompare(a.ts||'');});
+
+    thead.innerHTML='<th>Data/Hora</th><th>Código</th><th>Produto</th><th>Endereço</th><th>Qtd. contada</th><th>Usuário</th><th>Status</th>'+(canEdit()?'<th>Ação</th>':'');
+    tbody.innerHTML = linhas.map(function(c){
+      var p=gP(c.prodId);
+      var corrigidoLabel = c.corrigido?'<span class="badge" style="background:var(--amber)22;color:var(--amber);font-size:10px">original</span>':'';
+      return '<tr style="'+(c.corrigido?'opacity:.45':'')+'"><td style="font-size:11px;white-space:nowrap">'+(c.ts?c.ts.replace('T',' ').substr(0,16):'-')+'</td>'
+        +'<td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px">'+(p?p.codigo:'?')+'</code></td>'
+        +'<td>'+(p?p.nome:'[Removido]')+'</td>'
+        +'<td><span class="badge bb">R'+(c.rua||'?')+'-B'+(c.box||'?')+'-A'+(c.alt||'?')+'</span></td>'
+        +'<td style="font-weight:700;font-size:15px">'+c.qty+' '+(p?p.unidade:'')+'</td>'
+        +'<td style="font-size:12px">'+(c.usuario||'-')+'</td>'
+        +'<td>'+corrigidoLabel+(c.motivoCorrecao?'<span style="font-size:10px;color:var(--text3)">'+c.motivoCorrecao+'</span>':'')+'</td>'
+        +(canEdit()&&!c.corrigido?'<td><button class="btn bg bsm" onclick="abrirEdicaoLancamento(\''+c.id+'\')"><i class="ti ti-edit"></i> Corrigir</button></td>':'<td></td>')
+        +'</tr>';
+    }).join('') || '<tr><td colspan="8"><div class="es-sm">Nenhum lançamento na '+_invAbaAtiva+' ainda.</div></td></tr>';
+
+  } else if(_invAbaAtiva==='comparacao'){
+    // Aba de comparação
+    var grupos = calcStatusItens(_invAtivo);
+    var keys = Object.keys(grupos).filter(function(k){
+      var g=grupos[k]; var p=gP(g.prodId);
+      var matchBusca = !busca||((p&&p.codigo||'').toLowerCase().indexOf(busca)>=0)||((p&&p.nome||'').toLowerCase().indexOf(busca)>=0);
+      var matchSt = !filtroSt||g.status===filtroSt;
+      return matchBusca&&matchSt;
+    });
+    var nC = getNumContagens(_invAtivo);
+    var cHeaders = '';
+    for(var i=1;i<=nC;i++) cHeaders+='<th>C'+i+'</th>';
+    thead.innerHTML='<th>Código</th><th>Produto</th><th>Endereço</th>'+cHeaders+'<th>Status</th>';
+    tbody.innerHTML = keys.map(function(k){
+      var g=grupos[k]; var p=gP(g.prodId);
+      var end='R'+(g.rua||'?')+'-B'+(g.box||'?')+'-A'+(g.alt||'?');
+      var stBg=g.status==='fechado'?'rgba(34,197,94,.12)':g.status==='divergente'?'rgba(245,158,11,.12)':'rgba(255,255,255,.04)';
+      var stCor=g.status==='fechado'?'var(--green)':g.status==='divergente'?'var(--amber)':'var(--text3)';
+      var stTxt=g.status==='fechado'?'✅ Fechado '+g.valorFechado:g.status==='divergente'?'⚠️ Divergente':'🔘 Pendente';
+      var cols='';
+      for(var i2=1;i2<=nC;i2++){
+        var ct=g.contagens.find(function(c){return c.n===i2;});
+        var qtdFmt=ct?'<span style="font-weight:700;color:'+(g.status==='fechado'&&ct.qty===g.valorFechado?'var(--green)':'var(--amber)')+'">'+ct.qty+'</span>':'<span style="color:var(--text3)">—</span>';
+        cols+='<td>'+qtdFmt+(ct?'<div style="font-size:10px;color:var(--text3)">'+ct.user+'</div>':'')+'</td>';
+      }
+      return '<tr><td><code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px">'+(p?p.codigo:'?')+'</code></td>'
+        +'<td>'+(p?p.nome:'[Removido]')+'</td>'
+        +'<td><span class="badge bb">'+end+'</span></td>'
+        +cols
+        +'<td><span class="badge" style="background:'+stBg+';color:'+stCor+'">'+stTxt+'</span></td></tr>';
+    }).join('') || '<tr><td colspan="'+(4+nC)+'"><div class="es-sm">Nenhum item contado ainda.</div></td></tr>';
+
+  } else if(_invAbaAtiva==='consolidacao'){
+    // Aba de consolidação
+    var inv2 = gInv(_invAtivo);
+    if(!inv2||!inv2.consolidacao){
+      tbody.innerHTML='<tr><td colspan="5"><div class="es-sm">Consolidação não gerada ainda.</div></td></tr>';
+      return;
+    }
+    thead.innerHTML='<th>Código</th><th>Produto</th><th>Endereço</th><th>Qtd. Consolidada</th><th>Total produto</th>';
+    var cons = inv2.consolidacao; // [{prodId, rua, box, alt, qty}]
+    // Agrupar total por produto
+    var totProd={};
+    cons.forEach(function(c){totProd[c.prodId]=(totProd[c.prodId]||0)+c.qty;});
+    var grouped={};
+    cons.forEach(function(c){if(!grouped[c.prodId])grouped[c.prodId]=[];grouped[c.prodId].push(c);});
+    var html='';
+    Object.keys(grouped).filter(function(pid){
+      var p=gP(pid); return !busca||((p&&p.codigo||'').toLowerCase().indexOf(busca)>=0)||((p&&p.nome||'').toLowerCase().indexOf(busca)>=0);
+    }).forEach(function(pid){
+      var p=gP(pid); var itens=grouped[pid];
+      itens.forEach(function(c,idx){
+        html+='<tr><td>'+(idx===0?'<code style="background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:11px">'+(p?p.codigo:'?')+'</code>':'')+'</td>'
+          +'<td>'+(idx===0?(p?p.nome:'[Removido]'):'')+'</td>'
+          +'<td><span class="badge bb">R'+(c.rua||'?')+'-B'+(c.box||'?')+'-A'+(c.alt||'?')+'</span></td>'
+          +'<td style="font-weight:700">'+c.qty+' '+(p?p.unidade:'')+'</td>'
+          +'<td>'+(idx===0?'<span style="font-size:16px;font-weight:700;color:var(--teal)">'+totProd[pid]+'</span> '+(p?p.unidade:''):'')+'</td></tr>';
+      });
+    });
+    tbody.innerHTML=html||'<tr><td colspan="5"><div class="es-sm">Nenhum item consolidado.</div></td></tr>';
+  }
+}
+
+// ── Edição de lançamento (só admin) ─────────────────────────────────
+function abrirEdicaoLancamento(cId){
+  if(!canEdit()){toast('Sem permissão','error');return;}
+  var c = db.inv_contagens.find(function(x){return x.id===cId;}); if(!c) return;
+  var p = gP(c.prodId);
+  openModal('modal-editar-lancamento');
+  document.getElementById('mel-id').value = cId;
+  document.getElementById('mel-info').innerHTML = '<strong>'+(p?p.nome:'?')+'</strong> — C'+c.numContagem+' — Usuário: '+c.usuario+'<br>Lançado em: '+(c.ts?c.ts.replace('T',' ').substr(0,16):'-');
+  document.getElementById('mel-qty').value = c.qty;
+  document.getElementById('mel-rua').value = c.rua||'';
+  document.getElementById('mel-box').value = c.box||'';
+  document.getElementById('mel-alt').value = c.alt||'';
+  document.getElementById('mel-motivo').value = '';
+}
+
+async function salvarCorrecaoLancamento(){
+  var cId = document.getElementById('mel-id').value;
+  var qty = parseInt(document.getElementById('mel-qty').value)||0;
+  var rua = (document.getElementById('mel-rua').value||'').trim().toUpperCase();
+  var box = (document.getElementById('mel-box').value||'').trim();
+  var alt = (document.getElementById('mel-alt').value||'').trim();
+  var motivo = document.getElementById('mel-motivo').value.trim();
+  if(!motivo){toast('Informe o motivo da correção!','error');return;}
+  var ok = await confirmDialog('O lançamento original será mantido (marcado como corrigido) e um novo será criado com os valores corrigidos. Confirma?',{title:'Confirmar correção?',confirmText:'Confirmar'});
+  if(!ok) return;
+  var c = db.inv_contagens.find(function(x){return x.id===cId;}); if(!c) return;
+  // Marcar original como corrigido (imutável — só flag)
+  fsUpdate('inv_contagens', cId, {corrigido:true, motivoCorrecao:'Corrigido por '+currentUser.nome+': '+motivo, corrigidoEm:new Date().toISOString()});
+  // Criar novo lançamento corrigido
+  fsSave('inv_contagens',{
+    id:genId(), invId:c.invId, prodId:c.prodId,
+    numContagem:c.numContagem, qty:qty, rua:rua, box:box, alt:alt,
+    usuario:c.usuario, ts:c.ts, // mantém usuário e hora originais
+    corrigidoPor:currentUser.nome, corrigidoEm:new Date().toISOString(),
+    motivoCorrecao:motivo, corrigido:false
+  });
+  logAuditoria('editar','inv_lancamento','Correção em inventário: '+c.prodId+' C'+c.numContagem+' → qty:'+qty+' ('+motivo+')');
+  closeModal('modal-editar-lancamento');
+  toast('Lançamento corrigido e auditado','success');
+}
+
+// ── Consolidar ──────────────────────────────────────────────────────
+async function consolidarInventario(){
+  var inv = gInv(_invAtivo); if(!inv) return;
+  var grupos = calcStatusItens(_invAtivo);
+  var divergentes = Object.values(grupos).filter(function(g){return g.status!=='fechado';});
+  if(divergentes.length>0){
+    toast(divergentes.length+' item(s) ainda divergente(s). Só é possível consolidar quando todos fecharem.','error');
+    return;
+  }
+  var ok = await confirmDialog('Todos os itens foram fechados. Deseja consolidar o inventário agora? Esta ação não pode ser desfeita.',{title:'Consolidar inventário?',confirmText:'Consolidar',danger:false});
+  if(!ok) return;
+  // Montar a consolidação: por produto + endereço
+  var consolidacao = Object.values(grupos).map(function(g){
+    return {prodId:g.prodId, rua:g.rua, box:g.box, alt:g.alt, qty:g.valorFechado};
+  });
+  fsUpdate('inventarios', _invAtivo, {
+    status:'consolidado',
+    consolidacao: consolidacao,
+    consolidadoEm: new Date().toISOString(),
+    consolidadoPor: currentUser.nome
+  });
+  logAuditoria('editar','inventario','Inventário "'+inv.descricao+'" consolidado por '+currentUser.nome);
+  toast('Inventário consolidado!','success');
+  setTimeout(function(){ renderInvDetalhe(); },300);
+}
+
+// ── Aplicar ao estoque ──────────────────────────────────────────────
+async function aplicarConsolidadoAoEstoque(){
+  var inv = gInv(_invAtivo); if(!inv||!inv.consolidacao) return;
+  var ok1 = await confirmDialog(
+    'Isso vai atualizar as quantidades dos endereços do estoque com os valores do inventário consolidado. Esta ação não pode ser desfeita.',
+    {title:'Aplicar consolidado ao estoque?',confirmText:'Sim, aplicar',danger:false}
+  );
+  if(!ok1) return;
+  var ok2 = await confirmDialog(
+    'SEGUNDA CONFIRMAÇÃO: Tem certeza? O estoque atual será substituído pelos valores consolidados. Recomendamos exportar o inventário antes.',
+    {title:'Confirmar aplicação ao estoque?',confirmText:'Confirmar definitivamente'}
+  );
+  if(!ok2) return;
+
+  var consolidacao = inv.consolidacao;
+  var erros = [];
+  consolidacao.forEach(function(c){
+    // Encontrar o endereço correspondente no banco
+    var end = db.enderecos.find(function(e){
+      return e.produtoId===c.prodId&&(e.rua||'')===(c.rua||'')&&(e.box||'')===(c.box||'')&&(e.altura||'')===(c.alt||'');
+    });
+    if(end){
+      fsUpdate('enderecos', end.id, {qty:c.qty});
+    } else {
+      // Criar novo endereço se não existir
+      fsSave('enderecos',{id:genId(), produtoId:c.prodId, rua:c.rua, box:c.box, altura:c.alt, qty:c.qty});
+    }
+  });
+  // Recalcular qty de cada produto afetado
+  var prodIds = [...new Set(consolidacao.map(function(c){return c.prodId;}))];
+  prodIds.forEach(function(pid){
+    setTimeout(function(){ sincronizarQtyProduto(pid); },300);
+  });
+  // Marcar inventário como aplicado
+  fsUpdate('inventarios', _invAtivo, {
+    status:'aplicado',
+    aplicadoEm: new Date().toISOString(),
+    aplicadoPor: currentUser.nome
+  });
+  logAuditoria('editar','inventario','Consolidado do inventário "'+inv.descricao+'" APLICADO ao estoque por '+currentUser.nome);
+  toast('Estoque atualizado com os valores consolidados!','success');
+  setTimeout(function(){ renderInvDetalhe(); },400);
+}
+
+// ── Exportar inventário em XLSX ─────────────────────────────────────
+function exportarInventario(){
+  var inv = gInv(_invAtivo); if(!inv) return;
+  if(typeof XLSX==='undefined'){toast('Aguarde o carregamento da biblioteca...','error');return;}
+  var wb = XLSX.utils.book_new();
+
+  // Aba de cada contagem
+  var nC = getNumContagens(_invAtivo);
+  for(var i=1;i<=nC;i++){
+    var linhas = db.inv_contagens.filter(function(c){return c.invId===_invAtivo&&c.numContagem===i;});
+    var rows = [['Data/Hora','Código','Produto','Rua','Box','Altura','Qtd. Contada','Usuário','Corrigido','Motivo']];
+    linhas.forEach(function(c){
+      var p=gP(c.prodId);
+      rows.push([(c.ts||'').replace('T',' ').substr(0,16),p?p.codigo:'?',p?p.nome:'?',c.rua||'',c.box||'',c.alt||'',c.qty,c.usuario||'',c.corrigido?'Sim':'Não',c.motivoCorrecao||'']);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'C'+i);
+  }
+
+  // Aba de comparação
+  var grupos = calcStatusItens(_invAtivo);
+  var compRows = [['Código','Produto','Rua','Box','Altura','Status','Valor Fechado']];
+  for(var i2=1;i2<=nC;i2++) compRows[0].push('C'+i2);
+  Object.values(grupos).forEach(function(g){
+    var p=gP(g.prodId);
+    var row=[p?p.codigo:'?',p?p.nome:'?',g.rua||'',g.box||'',g.alt||'',g.status,g.valorFechado!==null?g.valorFechado:''];
+    for(var i3=1;i3<=nC;i3++){
+      var ct=g.contagens.find(function(c){return c.n===i3;});
+      row.push(ct?ct.qty:'');
+    }
+    compRows.push(row);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(compRows), 'Comparação');
+
+  // Aba de consolidação (se existir)
+  if(inv.consolidacao){
+    var consRows = [['Código','Produto','Rua','Box','Altura','Qtd. Consolidada','Total Produto']];
+    var totProd={};
+    inv.consolidacao.forEach(function(c){totProd[c.prodId]=(totProd[c.prodId]||0)+c.qty;});
+    inv.consolidacao.forEach(function(c){
+      var p=gP(c.prodId);
+      consRows.push([p?p.codigo:'?',p?p.nome:'?',c.rua||'',c.box||'',c.alt||'',c.qty,totProd[c.prodId]||0]);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(consRows), 'Consolidação');
+  }
+
+  XLSX.writeFile(wb, 'inventario-'+inv.descricao.replace(/[^a-z0-9]/gi,'_').toLowerCase()+'.xlsx');
+  toast('Exportado!','success');
+}
+
+// ── Dashboard de inventário ─────────────────────────────────────────
+function renderInvDashboard(){
+  var sel = document.getElementById('inv-dash-sel');
+  if(sel&&!sel.options.length){
+    db.inventarios.slice().sort(function(a,b){return (b.data||'').localeCompare(a.data||'');}).forEach(function(inv){
+      var o=document.createElement('option'); o.value=inv.id; o.textContent=inv.descricao+' ('+fmtDate(inv.data)+')'; sel.appendChild(o);
+    });
+  }
+  var invId = sel?sel.value:'';
+  var box = document.getElementById('inv-dash-conteudo'); if(!box) return;
+  if(!invId){ box.innerHTML='<div class="es-sm">Selecione um inventário acima.</div>'; return; }
+  var contagens = db.inv_contagens.filter(function(c){return c.invId===invId&&!c.corrigido;});
+  if(!contagens.length){ box.innerHTML='<div class="es-sm">Nenhum lançamento neste inventário ainda.</div>'; return; }
+  // Ranking por usuário
+  var userMap={};
+  contagens.forEach(function(c){
+    var u=c.usuario||'Desconhecido';
+    if(!userMap[u]) userMap[u]={lancamentos:0, unidades:0};
+    userMap[u].lancamentos++;
+    userMap[u].unidades+=c.qty;
+  });
+  var ranking=Object.keys(userMap).map(function(u){return{nome:u,lancamentos:userMap[u].lancamentos,unidades:userMap[u].unidades};});
+  ranking.sort(function(a,b){return b.lancamentos-a.lancamentos;});
+  var maxL=Math.max(1,ranking[0].lancamentos);
+  box.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">'
+    +'<div class="card" style="padding:20px"><div class="ch"><span class="ct"><i class="ti ti-list-numbers"></i> Ranking — Itens contados (linhas)</span></div>'
+    +ranking.map(function(u,i){
+      var cls=i===0?'gold':i===1?'silver':i===2?'bronze':'';
+      var pct=Math.round((u.lancamentos/maxL)*100);
+      return '<div class="bi-rank-item"><div class="bi-rank-num '+cls+'">'+(i+1)+'</div>'
+        +'<div style="flex:1;min-width:0"><div class="bi-rank-name">'+u.nome+'</div>'
+        +'<div class="bi-rank-bar-wrap"><div class="bi-rank-bar" style="width:'+pct+'%;background:var(--accent)"></div></div></div>'
+        +'<div style="font-size:13px;font-weight:700;color:var(--accent)">'+u.lancamentos+' itens</div></div>';
+    }).join('')+'</div>'
+    +'<div class="card" style="padding:20px"><div class="ch"><span class="ct"><i class="ti ti-package"></i> Ranking — Unidades contadas</span></div>'
+    +ranking.slice().sort(function(a,b){return b.unidades-a.unidades;}).map(function(u,i){
+      var maxU=Math.max.apply(null,ranking.map(function(x){return x.unidades;}));
+      var pct=Math.round((u.unidades/Math.max(1,maxU))*100);
+      return '<div class="bi-rank-item"><div class="bi-rank-num '+(i===0?'gold':i===1?'silver':i===2?'bronze':'')+'">'+(i+1)+'</div>'
+        +'<div style="flex:1;min-width:0"><div class="bi-rank-name">'+u.nome+'</div>'
+        +'<div class="bi-rank-bar-wrap"><div class="bi-rank-bar" style="width:'+pct+'%;background:var(--teal)"></div></div></div>'
+        +'<div style="font-size:13px;font-weight:700;color:var(--teal)">'+u.unidades+' un</div></div>';
+    }).join('')+'</div></div>';
+}
+
 function renderAlertas(){
   var list=db.produtos.filter(function(p){return p.qty<=p.min;});
   document.getElementById('alert-badge').textContent=list.length;
@@ -4744,9 +5427,21 @@ function closeModal(id){var m=document.getElementById(id);if(m)m.classList.remov
 document.addEventListener('click',function(e){if(e.target.classList.contains('mo'))e.target.classList.remove('open');});
 
 function baixarCSV(filename, headers, rows){
-  var all=[headers].concat(rows);
-  var csv=all.map(function(r){return r.map(function(v){return'"'+String(v===undefined||v===null?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
-  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download=filename;a.click();
+  // Todas as exportações são em XLSX independente do nome do arquivo
+  if(typeof XLSX==='undefined'){
+    // Fallback para CSV se XLSX ainda não carregou
+    var all=[headers].concat(rows);
+    var csv=all.map(function(r){return r.map(function(v){return'"'+String(v===undefined||v===null?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
+    var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,\uFEFF'+encodeURIComponent(csv);a.download=filename;a.click();
+    toast('Exportado (CSV)','success');
+    return;
+  }
+  var wb = XLSX.utils.book_new();
+  var ws = XLSX.utils.aoa_to_sheet([headers].concat(rows));
+  var sheetName = filename.replace(/\.csv$/,'').replace(/[^a-zA-Z0-9 _-]/g,'').substr(0,31)||'Dados';
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  var xlsxName = filename.replace(/\.csv$/, '.xlsx');
+  XLSX.writeFile(wb, xlsxName);
   toast('Exportado!','success');
 }
 function exportCSV(){
@@ -5133,6 +5828,17 @@ function renderScanPage(produto){
   html += '<div class="tb ent'+(movSel==='entrada'?' sel':'')+'" onclick="sMov(this,\'entrada\')">↑ ENTRADA</div>';
   html += '<div class="tb sai'+(movSel==='saida'?' sel':'')+'" onclick="sMov(this,\'saida\')">↓ SAÍDA</div>';
   html += '<div class="tb'+(movSel==='estoque'?' sel':'')+'" style="background:'+(movSel==='estoque'?'rgba(45,212,191,.2)':'rgba(255,255,255,.04)')+';border-color:'+(movSel==='estoque'?'#2dd4bf':'rgba(255,255,255,.12)')+';color:'+(movSel==='estoque'?'#2dd4bf':'#8b92a0')+'" onclick="sMov(this,\'estoque\')"><i class="ti ti-box"></i> ESTOQUE</div>';
+  // Inventário — só aparece se usuário foi atribuído a inventário ativo
+  var invAtivo = db.inventarios.find(function(inv){
+    return inv.status==='andamento'&&window._scUsuario&&(inv.usuariosAtivos||[]).find(function(ua){
+      return ua.userId===window._scUsuario.id && !ua.bloqueado;
+    });
+  });
+  if(invAtivo){
+    var ua = invAtivo.usuariosAtivos.find(function(x){return x.userId===(window._scUsuario&&window._scUsuario.id);});
+    html += '<div class="tb'+(movSel==='inventario'?' sel':'')+'" style="background:'+(movSel==='inventario'?'rgba(167,139,250,.2)':'rgba(255,255,255,.04)')+';border-color:'+(movSel==='inventario'?'#a78bfa':'rgba(255,255,255,.12)')+';color:'+(movSel==='inventario'?'#a78bfa':'#8b92a0')+'" onclick="sMov(this,\'inventario\')" data-inv-id="'+invAtivo.id+'" data-inv-nc="'+ua.numContagem+'"><i class="ti ti-clipboard-list"></i> INV C'+ua.numContagem+'</div>';
+    window._scInvAtivo = {id:invAtivo.id, nc:ua.numContagem, desc:invAtivo.descricao};
+  }
   html += '</div></div>';
 
   // Formulário padrão (Entrada/Saída) — só aparece quando não é Estoque nem Inventário
@@ -5175,7 +5881,7 @@ function renderScanPage(produto){
       html += '<div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px">'
         +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'
         +'<i class="ti ti-map-pin" style="color:#2dd4bf;font-size:16px"></i>'
-        +'<span style="font-weight:600;color:#fff;flex:1">Rua '+e.rua+' · Box '+e.box+' · Altura '+e.altura+'</span>'
+        +'<span style="font-weight:600;color:#fff;flex:1">'+fmtEnd(e)+'</span>'
         +'<button onclick="scExcluirEndereco(\''+e.id+'\',\''+e.produtoId+'\')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:#ef4444;border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center"><i class="ti ti-trash"></i></button>'
         +'</div>'
         +'<div style="display:flex;align-items:center;gap:8px">'
@@ -5201,6 +5907,23 @@ function renderScanPage(produto){
   html += '<div class="fi" style="margin:0 0 10px"><label style="font-size:10px">QUANTIDADE</label><div class="qc"><button onclick="sQEnd(-1)">−</button><input type="number" id="sc-end-qty" value="0" min="0" inputmode="numeric"><button onclick="sQEnd(1)">+</button></div></div>';
   html += '<button class="abtn" style="background:#2dd4bf;color:#000;border:none;font-weight:700" onclick="scSalvarEndereco()"><i class="ti ti-map-pin-plus"></i> Adicionar Endereço</button>';
   html += '</div>';
+  html += '</div>';
+
+
+  // Formulário INVENTÁRIO
+  var invDisplay = movSel==='inventario' ? 'block' : 'none';
+  html += '<div class="fs" id="sc-inv-form" style="display:'+invDisplay+'">';
+  html += '<div style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#a78bfa">';
+  html += '<strong>'+(window._scInvAtivo?window._scInvAtivo.desc:'Inventário')+'</strong>';
+  html += '<div style="margin-top:2px;opacity:.7">Contagem '+(window._scInvAtivo?'C'+window._scInvAtivo.nc:'?')+' · '+(window._scUsuario?window._scUsuario.nome||window._scUsuario.user:'')+'</div></div>';
+  html += '<h3>QUANTIDADE CONTADA</h3><div class="fi"><div class="qc"><button onclick="sQInv(-1)">−</button><input type="number" id="sc-inv-qty" value="0" min="0" inputmode="numeric"><button onclick="sQInv(1)">+</button></div></div>';
+  html += '<h3>ENDEREÇO</h3>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'
+    +'<div class="fi" style="margin:0"><label style="font-size:10px">RUA</label><input type="text" id="sc-inv-rua" placeholder="A" style="text-align:center;text-transform:uppercase"></div>'
+    +'<div class="fi" style="margin:0"><label style="font-size:10px">BOX</label><input type="text" id="sc-inv-box" placeholder="01" style="text-align:center"></div>'
+    +'<div class="fi" style="margin:0"><label style="font-size:10px">ALTURA</label><input type="text" id="sc-inv-alt" placeholder="1" style="text-align:center"></div>';
+  html += '</div>';
+  html += '<button class="abtn" style="background:#a78bfa;color:#000;border:none;font-weight:700" onclick="scLancarInventario()"><i class="ti ti-clipboard-check"></i> Confirmar Contagem</button>';
   html += '</div>';
 
   var ffDisplay = window._scItems.length > 0 ? 'block' : 'none';
@@ -5360,14 +6083,12 @@ window.sMov = function(el,tipo){
   el.classList.add('sel');
   window._scMov = tipo;
   window._scSessao.mov = tipo;
-  // Mostrar formulário correto
-  var isEnd = tipo==='estoque';
   var sc = document.getElementById('sc-form');
   var scEnd = document.getElementById('sc-end-form');
   var scInv = document.getElementById('sc-inv-form');
-  if(sc) sc.style.display = (!isEnd) ? 'block' : 'none';
+  if(sc) sc.style.display = (tipo==='entrada'||tipo==='saida') ? 'block' : 'none';
   if(scEnd) scEnd.style.display = tipo==='estoque' ? 'block' : 'none';
-  if(scInv) scInv.style.display = 'none';
+  if(scInv) scInv.style.display = tipo==='inventario' ? 'block' : 'none';
   var tipoFi = document.getElementById('sc-tipo-fi');
   if(tipoFi) tipoFi.style.display = tipo==='saida' ? 'block' : 'none';
   var tipoEntFi = document.getElementById('sc-tipo-ent-fi');
@@ -5417,6 +6138,36 @@ window.scEditarEndereco = function(endId){
   if(qEl) qEl.value=e.qty||0;
   window._scEditandoEndId = e.id;
   window.sToast('Campos preenchidos — ajuste e salve');
+};
+
+window.sQInv = function(d){
+  var el=document.getElementById('sc-inv-qty');
+  if(el) el.value=Math.max(0,(parseInt(el.value)||0)+d);
+};
+
+window.scLancarInventario = function(){
+  if(!window._scInvAtivo){ window.sToast('Nenhum inventário ativo'); return; }
+  var qty = parseInt(document.getElementById('sc-inv-qty').value)||0;
+  var rua = (document.getElementById('sc-inv-rua').value||'').trim().toUpperCase();
+  var box = (document.getElementById('sc-inv-box').value||'').trim();
+  var alt = (document.getElementById('sc-inv-alt').value||'').trim();
+  if(!rua||!box||!alt){ window.sToast('Preencha Rua, Box e Altura!'); return; }
+  var lancamento = {
+    id: genId(),
+    invId: window._scInvAtivo.id,
+    prodId: window._scProd.id,
+    numContagem: window._scInvAtivo.nc,
+    qty: qty,
+    rua: rua, box: box, alt: alt,
+    usuario: window._scUsuario ? (window._scUsuario.nome||window._scUsuario.user) : 'Desconhecido',
+    usuarioId: window._scUsuario ? window._scUsuario.id : '',
+    ts: new Date().toISOString(),
+    corrigido: false
+  };
+  fsSave('inv_contagens', lancamento);
+  // Resetar campos mas manter endereço (comum contar vários do mesmo local)
+  document.getElementById('sc-inv-qty').value = '0';
+  window.sToast('Contagem C'+window._scInvAtivo.nc+' registrada ✓');
 };
 
 window.scSalvarEndereco = function(){
@@ -5515,14 +6266,14 @@ window.finScan = function(){
   var dt = new Date().toISOString().split('T')[0];
   var itemsSnapshot = window._scItems.slice(); // cópia imutável antes de limpar
 
-  // ── Modo offline: sem conexão, guarda na fila local e confirma ao usuário ─
-  if(!navigator.onLine){
+  // ── Modo offline: só aplica para Saída/Entrada (não para Estoque/Inventário) ─
+  if(!navigator.onLine && (window._scMov==='saida'||window._scMov==='entrada')){
     var descricao = itemsSnapshot.length+' item(s) — '+proj+' — '+resp;
     itemsSnapshot.forEach(function(item, idx){
       addToOfflineQueue({
-        id: 's_off_'+Date.now()+'_'+idx,
-        descricao: item.nome+' ('+item.qty+' '+item.un+')',
-        data: {produto:item.prodId,qty:item.qty,data:dt,projetoTxt:proj,equipe:eq,tipoServ:window._scTipo,resp:resp,obs:obs||'',_offline:true}
+        id: (window._scMov==='saida'?'s':'e')+'_off_'+Date.now()+'_'+idx,
+        descricao: item.nome+' ('+item.qty+' '+item.un+') — '+window._scMov,
+        data: {produto:item.prodId,qty:item.qty,data:dt,projetoTxt:proj,equipe:eq,tipoServ:window._scTipo,tipoMov:window._scTipoEnt||'',resp:resp,obs:obs||'',_offline:true,_mov:window._scMov}
       });
     });
     window._scItems = [];
@@ -5539,6 +6290,11 @@ window.finScan = function(){
       '<button onclick="window.location.href=window.location.origin+window.location.pathname" style="width:100%;padding:14px;border-radius:11px;background:#f59e0b;color:#fff;border:none;font-size:15px;font-weight:600;cursor:pointer">Nova Movimentação</button>',
       '</div>'
     ].join('');
+    return;
+  } else if(!navigator.onLine) {
+    // Estoque ou Inventário sem conexão — não tem como salvar, avisa
+    btn.disabled=false; btn.textContent='✓ Finalizar Tudo';
+    window.sToast('Sem conexão. Operações de Estoque/Inventário requerem internet.');
     return;
   }
 
