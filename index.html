@@ -1523,7 +1523,7 @@ tbody tr:nth-child(even):hover td { background: rgba(91,141,239,.06) }
 .bi-kpi { background:linear-gradient(160deg,rgba(255,255,255,.07) 0%,rgba(255,255,255,.03) 100%); border:1px solid rgba(255,255,255,.12); border-radius:14px; padding:18px 16px; position:relative; overflow:hidden; transition:border-color .2s, transform .15s }
 .bi-kpi:hover { border-color:color-mix(in srgb, var(--kc,#2dd4bf) 60%, transparent); transform:translateY(-2px) }
 .bi-kpi::after { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:var(--kc,#2dd4bf); border-radius:14px 14px 0 0 }
-.bi-kpi-icon { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:14px; color:var(--kc,#2dd4bf); background:color-mix(in srgb, var(--kc,#2dd4bf) 18%, #0d1b3e); box-shadow:0 0 0 1px color-mix(in srgb, var(--kc,#2dd4bf) 30%, transparent) }
+.bi-kpi-icon { width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:22px; margin-bottom:14px; color:var(--kc,#2dd4bf); background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.1) }
 .bi-kpi-icon i { color:var(--kc,#2dd4bf) !important; font-size:22px }
 .bi-kpi-val { font-family:'Space Grotesk',sans-serif; font-size:36px; font-weight:700; color:#fff; line-height:1; margin-bottom:4px; text-shadow:0 0 20px color-mix(in srgb, var(--kc,#2dd4bf) 40%, transparent) }
 .bi-kpi-lbl { font-size:10.5px; color:rgba(255,255,255,.55); font-weight:600; text-transform:uppercase; letter-spacing:.6px }
@@ -4413,18 +4413,18 @@ function renderBI(){
   var delta = totalItensAnt ? Math.round(((totalItens-totalItensAnt)/totalItensAnt)*100) : 0;
 
   var kpis = [
-    {val:saidas.length, lbl:'Saídas no período', sub:totalItens+' itens movimentados', ic:'ti-package-export', kc:'#2dd4bf', delta:delta},
-    {val:totalItens, lbl:'Itens retirados', sub:'vs. '+totalItensAnt+' no mês anterior', ic:'ti-arrow-down-right-circle', kc:'#5b8def', delta:null},
-    {val:projPeriodo, lbl:'Projetos com saída', sub:'de '+db.projetos.filter(function(p){return p.status!=='liquidado';}).length+' ativos', ic:'ti-folders', kc:'#a78bfa', delta:null},
-    {val:totalEnt, lbl:'Itens recebidos', sub:totalDev+' devoluções no período', ic:'ti-package-import', kc:'#22c55e', delta:null},
-    {val:zerados, lbl:'Materiais zerados', sub:db.produtos.filter(function(p){return p.qty>0&&p.qty<=p.min;}).length+' abaixo do mínimo', ic:'ti-alert-triangle', kc:zerados>0?'#ef4444':'#22c55e', delta:null},
-    {val:sapPend, lbl:'Pendências SAP', sub:semPep+' projetos sem PEP', ic:'ti-robot', kc:sapPend>0?'#f59e0b':'#22c55e', delta:null},
+    {val:saidas.length, lbl:'Saídas no período', sub:totalItens+' itens movimentados', ic:'📤', kc:'#2dd4bf', delta:delta},
+    {val:totalItens, lbl:'Itens retirados', sub:'vs. '+totalItensAnt+' no mês anterior', ic:'📦', kc:'#5b8def', delta:null},
+    {val:projPeriodo, lbl:'Projetos com saída', sub:'de '+db.projetos.filter(function(p){return p.status!=='liquidado';}).length+' ativos', ic:'📁', kc:'#a78bfa', delta:null},
+    {val:totalEnt, lbl:'Itens recebidos', sub:totalDev+' devoluções no período', ic:'📥', kc:'#22c55e', delta:null},
+    {val:zerados, lbl:'Materiais zerados', sub:db.produtos.filter(function(p){return p.qty>0&&p.qty<=p.min;}).length+' abaixo do mínimo', ic:zerados>0?'⚠️':'✅', kc:zerados>0?'#ef4444':'#22c55e', delta:null},
+    {val:sapPend, lbl:'Pendências SAP', sub:semPep+' projetos sem PEP', ic:sapPend>0?'🤖':'✅', kc:sapPend>0?'#f59e0b':'#22c55e', delta:null},
   ];
   document.getElementById('bi-kpis').innerHTML = kpis.map(function(k){
     var dEl = '';
     if(k.delta!==null) dEl = '<div class="bi-kpi-delta '+(k.delta>=0?'up':'down')+'">'+(k.delta>=0?'▲':'▼')+Math.abs(k.delta)+'%</div>';
     return '<div class="bi-kpi" style="--kc:'+k.kc+'">'+dEl
-      +'<div class="bi-kpi-icon"><i class="ti '+k.ic+'"></i></div>'
+      +'<div class="bi-kpi-icon" style="font-size:22px;line-height:1">'+k.ic+'</div>'
       +'<div class="bi-kpi-val">'+k.val+'</div>'
       +'<div class="bi-kpi-lbl">'+k.lbl+'</div>'
       +'<div class="bi-kpi-sub">'+k.sub+'</div>'
